@@ -16,3 +16,8 @@ build-stamp
 config-stamp
 patch-stampT
 stamp-h
+arrange-stamp
+debian/libpam-mysql.debhelper.log
+debian/libpam-mysql/
+install-stamp
+pam_mysql.spec

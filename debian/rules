@@ -31,13 +31,13 @@ binary-indep: binary-indep-stamp
 binary-indep-stamp: arrange
 	touch binary-indep-stamp
 
-build: build-stamp patch
+build: build-stamp
 build-stamp: config
 	dh_testdir
 	$(MAKE)
 	touch build-stamp
 
-clean: unpatch
+clean:
 	dh_testdir
 	dh_testroot
 	-$(MAKE) distclean
