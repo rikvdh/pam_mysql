@@ -795,7 +795,8 @@ static char * d7_password_crypt(int use_md5, char *password, char *setting) {
 
 static int pam_mysql_drupal7_data(const unsigned char *pwd, unsigned int sz, char *md, char *db_pwd)
 {
-	char *stored_hash = db_pwd, *pwd_ptr = (char *) pwd, *hashed;
+	char *stored_hash = db_pwd, *pwd_ptr = (char *) pwd;
+	char *hashed = NULL;
 	int match = 0, offset = 0;
 
 	// Algorithm taken from user_check_password in includes/password.c in D7.0.
