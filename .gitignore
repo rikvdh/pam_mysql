@@ -12,3 +12,7 @@ libtool
 pam_mysql.la
 pam_mysql.lo
 stamp-h1
+build-stamp
+config-stamp
+patch-stampT
+stamp-h

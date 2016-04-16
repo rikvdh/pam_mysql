@@ -4,7 +4,7 @@ Priority: extra
 Maintainer: Paweł Więcek <coven@debian.org>
 Uploaders: Lars Bahner <bahner@debian.org>
 Standards-Version: 3.8.0
-Build-Depends: libpam0g-dev, libmysqlclient15-dev, debhelper (>= 5.0.0), libssl-dev, dpatch
+Build-Depends: libpam0g-dev, libmysqlclient15-dev, debhelper (>= 5.0.0), libssl-dev
 
 Package: libpam-mysql
 Architecture: any

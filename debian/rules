@@ -1,8 +1,6 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-include /usr/share/dpatch/dpatch.make
-
 arrange: arrange-stamp
 arrange-stamp: install
 	touch arrange-stamp
