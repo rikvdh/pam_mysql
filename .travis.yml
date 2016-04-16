@@ -1,7 +1,3 @@
-env:
-  global:
-    - secure: "5ncVdL5mq0ZAYRj7BznhyQ"
-
 language: c
 sudo: true
 
@@ -16,15 +12,4 @@ compiler:
   - scan-build
   - debian
 
-script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./.travis.sh; fi
-
-addons:
-  coverity_scan:
-    project:
-      name: rikvdh/pam-MySQL
-      version: 0.8.0
-      description: pam-MySQL
-    notification_email: pam-mysql@mailinator.com
-    build_command_prepend: ./configure --prefix=/usr --with-openssl --with-pam_mods_dir=/lib/security --with-pam=/usr
-    build_command: make
-    branch_pattern: coverity_scan
+script: ./.travis.sh
