@@ -2572,6 +2572,8 @@ static void pam_mysql_close_db(pam_mysql_ctx_t *ctx)
 
 	mysql_close(ctx->mysql_hdl);
 
+	mysql_library_end();
+
 	xfree(ctx->mysql_hdl);
 	ctx->mysql_hdl = NULL;
 }
@@ -2872,9 +2874,12 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 
 				/* ENCRYPT */
 				case 1:
-					vresult = strcmp(row[0], crypt(passwd, row[0]));
-					if (errno) {
+					char *crypted_password = crypt(passwd, row[0]);
+					if (crypted_password == NULL) {
 						syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "something went wrong when invoking crypt() - %s", strerror(errno));
+						vresult = 1;
+					} else {
+						vresult = strcmp(row[0], crypted_password);
 					}
 					break;
 
