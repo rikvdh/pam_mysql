@@ -1,11 +1,10 @@
 language: c
 sudo: true
-matrix:
-  include:
-    - os: linux
-      compiler: gcc
-    - os: linux
-      compiler: clang
 
-script:
-  - ./.travis.sh
+compiler:
+  - clang
+  - gcc
+  - scan-build
+  - debian
+
+script: ./.travis.sh

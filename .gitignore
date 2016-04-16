@@ -2,10 +2,6 @@ config.log
 .deps
 .libs
 Makefile
-Makefile.in.orig
-Makefile.in.rej
-aclocal.m4.orig
-aclocal.m4.rej
 config.h
 config.status
 libtool
@@ -27,3 +23,4 @@ binary-stamp
 debian/files
 debian/libpam-mysql.postrm.debhelper
 debian/libpam-mysql.substvars
+analysis
