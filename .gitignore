@@ -1,2 +1,14 @@
 config.log
-
+.deps
+.libs
+Makefile
+Makefile.in.orig
+Makefile.in.rej
+aclocal.m4.orig
+aclocal.m4.rej
+config.h
+config.status
+libtool
+pam_mysql.la
+pam_mysql.lo
+stamp-h1
