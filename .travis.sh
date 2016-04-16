@@ -12,6 +12,8 @@ elif [[ "$CC" == "debian" ]]; then
     unset CC
     unset CXX
 
+    sudo apt-get install -qq -y devscripts
+
     debuild --no-lintian -us -uc -b
 else
     ./configure --prefix=/usr --with-openssl --with-pam_mods_dir=/lib/security --with-pam=/usr
