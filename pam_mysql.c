@@ -624,6 +624,7 @@ static char *pam_mysql_sha1_data(const unsigned char *d, unsigned int sz, char *
 
 	return md;
 }
+#endif
 /* }}} */
 
 #if defined(HAVE_PAM_MYSQL_SHA1_DATA) && defined(HAVE_PAM_MYSQL_MD5_DATA)
