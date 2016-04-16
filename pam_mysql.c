@@ -624,29 +624,6 @@ static char *pam_mysql_sha1_data(const unsigned char *d, unsigned int sz, char *
 
 	return md;
 }
-
-static char *pam_mysql_sha512_data(const unsigned char *d, unsigned int sz, char *md)
-{
-	size_t i, j;
-	unsigned char buf[64];
-
-	if (md == NULL) {
-		if ((md = xcalloc(128 + 1, sizeof(char))) == NULL) {
-			return NULL;
-		}
-	}
-
-	SHA512(d, (unsigned long)sz, buf);
-
-	for (i = 0, j = 0; i < 64; i++, j += 2) {
-		md[j + 0] = "0123456789abcdef"[(int)(buf[i] >> 4)];
-		md[j + 1] = "0123456789abcdef"[(int)(buf[i] & 0x0f)];
-	}
-	md[j] = '\0';
-
-	return md;
-}
-#endif
 /* }}} */
 
 #if defined(HAVE_PAM_MYSQL_SHA1_DATA) && defined(HAVE_PAM_MYSQL_MD5_DATA)
@@ -687,11 +664,11 @@ static char * _password_itoa64(void)
 static int d7_password_get_count_log2(char *setting)
 {
 	char *itoa64 = _password_itoa64();
-	int i;
+	size_t i;
 
 	for (i = 0; i < strlen(itoa64); i++) {
 		if (itoa64[i] == setting[3])
-			return i;
+			return (int)i;
 	}
 	return -1;
 }
