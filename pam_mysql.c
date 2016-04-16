@@ -402,7 +402,7 @@ static void *xcalloc(size_t nmemb, size_t size)
 	void *retval;
 	double v = ((double)size) * (int)(nmemb & (((size_t)-1) >> 1));
 
-	if (v != nmemb * size) {
+	if (v != nmemb * size || !nmemb || !size) {
 		return NULL;
 	}
 
@@ -730,9 +730,18 @@ static char * _password_base64_encode(unsigned char *input, int count, char *out
 static char *d7_hash(int use_md5, char *string1, int len1, char *string2, int len2)
 {
 	int len = len1 + len2;
-	char *combined = xcalloc(len, sizeof(char)), *output = xcalloc(129, sizeof(char));
+	char *combined = xcalloc(len, sizeof(char))
+	char *output = NULL;
 
 	if (!combined) {
+		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "hash: Failed to allocate memory for combined value.");
+		return NULL;
+	}
+
+	output = xcalloc(129, sizeof(char));
+	
+	if (!output) {
+		xfree(combined);
 		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "hash: Failed to allocate memory for combined value.");
 		return NULL;
 	}
@@ -4127,11 +4136,9 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 
 	switch (err) {
 		case PAM_MYSQL_ERR_SUCCESS:
-			retval = PAM_SUCCESS;
 			break;
 
 		case PAM_MYSQL_ERR_NO_ENTRY:
-			retval = PAM_SUCCESS;
 			caps = 0;
 			break;
 
@@ -4155,14 +4162,9 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 		pam_mysql_sql_log(ctx, "QUERYING FAILURE", user, rhost);
 	}
 
-	switch (err) {
-		case PAM_MYSQL_ERR_SUCCESS:
-			retval = PAM_SUCCESS;
-			break;
-
-		default:
-			retval = PAM_PERM_DENIED;
-			goto out;
+	if (err != PAM_MYSQL_ERR_SUCCESS) {
+		retval = PAM_PERM_DENIED;
+		goto out;
 	}
 
 	if (!(flags & PAM_CHANGE_EXPIRED_AUTHTOK) &&
@@ -4196,7 +4198,6 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 			if (old_passwd != NULL) {
 				switch (pam_mysql_check_passwd(ctx, user, old_passwd, 0)) {
 					case PAM_MYSQL_ERR_SUCCESS:
-						retval = PAM_SUCCESS;
 						break;
 
 					case PAM_MYSQL_ERR_NO_ENTRY:
@@ -4208,7 +4209,6 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 							retval = PAM_AUTH_ERR;
 							goto out;
 						}
-						retval = PAM_SUCCESS;
 						break;
 
 					case PAM_MYSQL_ERR_ALLOC:
@@ -4251,7 +4251,6 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 
 			switch (pam_mysql_check_passwd(ctx, user, old_passwd, 0)) {
 				case PAM_MYSQL_ERR_SUCCESS:
-					retval = PAM_SUCCESS;
 					break;
 
 				case PAM_MYSQL_ERR_NO_ENTRY:
