@@ -815,7 +815,7 @@ static char * d7_password_crypt(int use_md5, char *password, char *setting) {
 	return final;
 }
 
-static char *pam_mysql_drupal7_data(const unsigned char *pwd, unsigned int sz, char *md, char *db_pwd)
+static int pam_mysql_drupal7_data(const unsigned char *pwd, unsigned int sz, char *md, char *db_pwd)
 {
 	char *stored_hash = db_pwd, *pwd_ptr = (char *) pwd, *hashed;
 	int match = 0, offset = 0;
@@ -847,10 +847,11 @@ static char *pam_mysql_drupal7_data(const unsigned char *pwd, unsigned int sz, c
 
 	if (!match || !hashed) {
 		md[0] = db_pwd[0] + 1;
-		return NULL;
+		return -1;
 	}
 	memcpy(md, hashed, strlen(hashed));
 	xfree(hashed);
+	return 0;
 }
 #endif
 /* }}} */
@@ -3213,7 +3214,7 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 				char salt[33];
 				salt[32]=0;
 
-				srandom(time());
+				srandom(time(NULL));
 
 				int i;
 				for(i=0;i<32; i++)
@@ -3872,6 +3873,7 @@ out:
 PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t * pamh, int flags, int argc,
 		const char **argv)
 {
+	(void)flags;
 	int retval;
 	int err;
 	int stat;
@@ -4013,6 +4015,10 @@ out:
 PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh,int flags,int argc,
 		const char **argv)
 {
+	(void)pamh;
+	(void)flags;
+	(void)argc;
+	(void)argv;
 #ifdef DEBUG
 	syslog(LOG_INFO, "%s", PAM_MYSQL_LOG_PREFIX "setcred called but not implemented.");
 #endif
@@ -4078,8 +4084,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 	}
 
 	/* Get User */
-	if ((retval = pam_get_user(pamh, (PAM_GET_USER_CONST char **)&user,
-			NULL))) {
+	if ((retval = pam_get_user(pamh, (const char **)&user, NULL))) {
 		goto out;
 	}
 
@@ -4393,6 +4398,7 @@ out:
 PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc,
 		const char **argv)
 {
+	(void)flags;
 	int retval;
 	pam_mysql_ctx_t *ctx = NULL;
 	const char *user;
@@ -4438,8 +4444,7 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc,
 	}
 
 	/* Get User */
-	if ((retval = pam_get_user(pamh, (PAM_GET_USER_CONST char **)&user,
-			NULL))) {
+	if ((retval = pam_get_user(pamh, (const char **)&user, NULL))) {
 		goto out;
 	}
 
@@ -4495,6 +4500,7 @@ out:
 PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc,
 		const char **argv)
 {
+	(void)flags;
 	int retval;
 	pam_mysql_ctx_t *ctx = NULL;
 	const char *user;
@@ -4540,8 +4546,7 @@ PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc,
 	}
 
 	/* Get User */
-	if ((retval = pam_get_user(pamh, (PAM_GET_USER_CONST char **)&user,
-			NULL))) {
+	if ((retval = pam_get_user(pamh, (const char **)&user, NULL))) {
 		goto out;
 	}
 
