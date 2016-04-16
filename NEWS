@@ -1,3 +1,11 @@
+Version 0.8.0   2016/4/16  <mail@rikvanderheijden.com>
+
+* Using semver
+* Fix memory-leak from libmysql
+* Use source-fortification
+* Fixed compilation warnings
+
+
 Version 0.7-RC1   2006/1/10  <moriyoshi@users.sourceforge.net>
 
 * Add a option "disconnect_every_op" option that forces pam_mysql to

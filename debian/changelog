@@ -1,3 +1,9 @@
+pam-mysql (0.8.0) unstable; urgency=low
+
+  * See https://github.com/rikvdh/pam-MySQL/blob/master/NEWS
+
+ -- Rik van der Heijden <mail@rikvanderheijden.com>  Sat, 16 Apr 2016 20:21:10 +0100
+
 pam-mysql (0.7~RC1-4) unstable; urgency=low
 
   * Set bogus passwd in pam_mysql.conf so that root won't be able to

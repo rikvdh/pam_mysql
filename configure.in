@@ -2,8 +2,8 @@ dnl $Id: configure.in,v 1.6.2.7 2006/01/09 10:35:59 moriyoshi Exp $
 sinclude([pkg.m4])
 
 AC_PREREQ([2.57])
-AC_INIT(pam_mysql, 0.7RC1)
-AM_INIT_AUTOMAKE(pam_mysql, 0.7RC1)
+AC_INIT(pam_mysql, 0.8.0)
+AM_INIT_AUTOMAKE(pam_mysql, 0.8.0)
 AC_CONFIG_SRCDIR(pam_mysql.c)
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
