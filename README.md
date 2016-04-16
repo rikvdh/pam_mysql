@@ -123,10 +123,6 @@ crypt (plain)
        
        5 (or "drupal7")	= Use Drupal7 salted passwords
 
-       6 (or "joomla15")= Use Joomla 1.5 salted passwords
-
-       7 (or "django")  = Use django salted passwords
-
 md5 (false)
 
     Use MD5 by default for crypt(3) hash. Only meaningful when crypt is
