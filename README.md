@@ -1,5 +1,5 @@
-pam_mysql - A PAM authentication module against MySQL database.
-$Id: README,v 1.8.2.9 2006/01/09 10:35:59 moriyoshi Exp $
+pam_mysql - A PAM authentication module against MySQL database
+==============================================================
 
 Introduction
 ------------
