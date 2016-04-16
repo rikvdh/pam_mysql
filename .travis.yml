@@ -1,14 +1,11 @@
-# .travis.yml
-
 language: c
-
 sudo: true
-
-addons:
-  apt:
-    packages:
-      - libpam-dev
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+    - os: linux
+      compiler: clang
 
 script:
-  - ./configure --prefix=/usr --with-openssl --with-pam_mods_dir=/lib/security --with-pam=/usr
-  - make
+  - ./.travis.sh
