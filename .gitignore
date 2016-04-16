@@ -21,3 +21,9 @@ debian/libpam-mysql.debhelper.log
 debian/libpam-mysql/
 install-stamp
 pam_mysql.spec
+binary-arch-stamp
+binary-indep-stamp
+binary-stamp
+debian/files
+debian/libpam-mysql.postrm.debhelper
+debian/libpam-mysql.substvars
