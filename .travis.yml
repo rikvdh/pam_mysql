@@ -8,5 +8,5 @@ addons:
       - libpam-dev
 
 script:
-  - ./configure
+  - ./configure --prefix=/usr --with-openssl --with-pam_mods_dir=/lib/security --with-pam=/usr
   - make
