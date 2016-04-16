@@ -1,0 +1,15 @@
+Source: pam-mysql
+Section: admin
+Priority: extra
+Maintainer: Paweł Więcek <coven@debian.org>
+Uploaders: Lars Bahner <bahner@debian.org>
+Standards-Version: 3.8.0
+Build-Depends: libpam0g-dev, libmysqlclient15-dev, debhelper (>= 5.0.0), libssl-dev, dpatch
+
+Package: libpam-mysql
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: PAM module allowing authentication from a MySQL server
+ This module lets you use a MySQL database as a source of
+ authentication (but not session or other) information for PAM-enabled
+ apps.

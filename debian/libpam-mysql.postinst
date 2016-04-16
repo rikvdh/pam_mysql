@@ -1,0 +1,8 @@
+#!/bin/sh
+
+. /usr/share/debconf/confmodule
+
+if [ -e /etc/pam-mysql.conf ] ; then
+	db_get pam-mysql/config_file_noread
+	if [ "$RET" = "true" ]; then chmod 0600 /etc/pam-mysql.conf; fi
+fi

@@ -1,0 +1,18 @@
+This version of pam-mysql supports using a config file, eg:
+/etc/libpam-mysql.conf to hold configuration. This file needn't
+be world readable and isn't per default in debian. You can change this
+with the command ``dpkg-reconfigure -plow libpam-mysql''.
+
+In order to use this configuration file you simply type something like
+the following in your pam-file (eg. /etc/pam.d/ssh):
+
+auth       optional     pam_mysql.so config_file=/etc/libpam-mysql.conf
+account    required     pam_mysql.so config_file=/etc/libpam-mysql.conf
+
+And edit /etc/libpam-mysql.conf to your liking. The default assumes no
+password for root to use mysql and simply uses the mysql accounts.
+
+This is not neccesarily a good idea.
+
+
+Lars Bahner <bahner@debian.org> -- Mon Jan 26 02:56:00 CET 2009 

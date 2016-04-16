@@ -1,0 +1,1 @@
+shlibs:Depends=libc6 (>= 2.7-1), libmysqlclient15off (>= 5.0.27-1)

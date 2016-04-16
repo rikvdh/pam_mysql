@@ -1,0 +1,129 @@
+pam-mysql (0.7~RC1-4) unstable; urgency=low
+
+  * Set bogus passwd in pam_mysql.conf so that root won't be able to
+    log as root without password
+  * Added patch to link against libpam. (closes: #418500). Kudos to
+    Christian Hammers for patch
+
+ -- Lars Bahner <bahner@debian.org>  Fri, 30 Jan 2009 18:19:10 +0100
+
+pam-mysql (0.7~RC1-3) experimental; urgency=low
+
+  * debconf
+  * more cleanup
+  * added -f switch to rm in rules (closes: #490772) 
+  * New version fixes bugs (closes: #367535, #368653, #238478)
+
+ -- Lars Bahner <bahner@debian.org>  Mon, 26 Jan 2009 08:36:06 +0100
+
+pam-mysql (0.7~RC1-2) experimental; urgency=low
+
+  * Bumped license to GPL-3 explicitly.
+  * Cleaned up packaging a bit
+  * Added conffile /etc/libpam-mysql.conf
+
+ -- Lars Bahner <bahner@debian.org>  Mon, 26 Jan 2009 03:24:56 +0100
+
+pam-mysql (0.7~RC1-1) experimental; urgency=low
+
+  * Added myself as uploader after request from Pawel.
+  * New upstream version (closes: #389347)
+  * Added patch to build with openssl (closes: #373834, #495532)
+  * Version 0.7 uses external config.file (closes: #297930
+
+ -- Lars Bahner <bahner@debian.org>  Sun, 25 Jan 2009 22:44:08 +0100
+
+pam-mysql (0.6.2-1) unstable; urgency=high
+
+  * New upstream version (closes: #332714, #353589, #307861, #292097)
+  * Severity high because it fixes critical vulnerabilities (CVE-2005-4713,
+    CVE-2006-0056)
+  * Rebuilt against libmysqlclient15 (closes: #356745)
+  * Updated standards version and debhelper compatibility level
+
+ -- Paweł Więcek <coven@debian.org>  Fri, 21 Apr 2006 07:20:56 +0200
+
+pam-mysql (0.5.0-7) unstable; urgency=low
+
+  * Added patch from Magnus Holmgren <holmgren@lysator.liu.se> to fix behavior
+    when NULL passwords are used (closes: #297819)
+  * Rebuilt agains libmysqlclient12
+
+ -- Pawel Wiecek <coven@debian.org>  Wed, 18 May 2005 21:38:56 +0200
+
+pam-mysql (0.5.0-6) unstable; urgency=low
+
+  * Added patch by Kees Cook taken from from sf.net patch tracker and
+    adapted by Thomas Viehmann.
+  * Link against libpam. (Closes: #245790)
+  * Added -fno-strict-aliasing to CFLAGS.
+
+ -- Pawel Wiecek <coven@debian.org>  Tue,  8 Jun 2004 22:27:54 +0200
+
+pam-mysql (0.5.0-5) unstable; urgency=low
+
+  * Added patch from Lehel Bernadt <lehel@pmc-services.hu> to allow
+    specification of mysql port (closes: #233813)
+
+ -- Pawel Wiecek <coven@debian.org>  Tue,  9 Mar 2004 01:23:27 +0100
+
+pam-mysql (0.5.0-4) unstable; urgency=low
+
+  * Workaround a problem with crypt() calls (closes: #223486)
+  * Switched to off by default and documented MySQL logging (closes: #197028)
+
+ -- Pawel Wiecek <coven@debian.org>  Thu, 22 Jan 2004 14:00:49 +0100
+
+pam-mysql (0.5.0-3) unstable; urgency=low
+
+  * Applied patch from Christian Hammers <ch@debian.org> to fix maximum
+    database name string length (closes: #201261)
+  * Updated standards version (no changes required)
+
+ -- Pawel Wiecek <coven@debian.org>  Tue, 14 Oct 2003 15:03:45 +0200
+
+pam-mysql (0.5.0-2) unstable; urgency=low
+
+  * Don't compile in debug mode anymore (closes: #195034)
+  * Updated standards version
+
+ -- Pawel Wiecek <coven@debian.org>  Wed, 28 May 2003 12:42:17 +0200
+
+pam-mysql (0.5.0-1) unstable; urgency=low
+
+  * New upstream version (closes: #187015)
+  * Updated standards version
+
+ -- Pawel Wiecek <coven@debian.org>  Tue, 29 Apr 2003 14:22:36 +0200
+
+pam-mysql (0.4.7-1) unstable; urgency=low
+
+  * New maintainer (closes: #107967, #77537, #97616)
+
+ -- Pawel Wiecek <coven@debian.org>  Fri, 23 Nov 2001 13:20:26 +0100
+
+pam-mysql (0.4.7-0.1) unstable; urgency=medium
+
+  * Non-maintainer upload
+  * Fixess security bug that allows to gain access to plaintext passwords
+    remotely. This bug was reported with severity grave on 2000-11-12.
+    Fixes: #77537
+  * Recompilation also linked against libmysqlclient10. Closes: #97616
+
+ -- Christian Hammers <ch@debian.org>  Sun, 20 May 2001 19:14:47 +0200
+
+pam-mysql (0.2) unstable; urgency=low
+
+  * NMU: Recompiled against libmysqlclient10. Closes: #97616 
+
+ -- Christian Hammers <ch@debian.org>  Sat, 19 May 2001 18:40:08 +0200
+
+pam-mysql (0.1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Michael Alan Dorman <mdorman@debian.org>  Wed,  1 Mar 2000 15:27:10 -0500
+
+Local variables:
+mode: debian-changelog
+End:

@@ -1,0 +1,10 @@
+Template: pam-mysql/config_file_noread
+Type: boolean
+Default: true
+Description: Chmod configuration file?
+ This version of pam-mysql has a configuration file which may include
+ passwords. Do you want to disable normal users from reading this
+ file? 
+ .
+ There is probably no good reason *not* to do this. As the most common
+ reason to use the configuration file is to hide the password.
