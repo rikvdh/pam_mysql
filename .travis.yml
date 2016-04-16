@@ -1,0 +1,12 @@
+# .travis.yml
+
+language: c
+
+addons:
+  apt:
+    packages:
+      - libpam-dev
+
+script:
+  - ./configure
+  - make
