@@ -2705,27 +2705,22 @@ static pam_mysql_err_t pam_mysql_format_string(pam_mysql_ctx_t *ctx,
 
 			case 3:
 				if (*p == '}') {
-					const char *val;
+					const char *val = NULL;
 					int to_release;
 
 					if ((err = pam_mysql_get_option(ctx, &val, &to_release, name, (size_t)(p - name)))) {
 						goto out;
 					}
 
-					if (val == NULL) {
+					if (val == NULL)
 						val = xstrdup("");
-					}
 
 					if ((err = pam_mysql_quick_escape(ctx, pretval, val, strlen(val)))) {
-						if (to_release) {
-							xfree((char *)val);
-						}
+						xfree((char *)val);
 						goto out;
 					}
 
-					if (to_release) {
-						xfree((char *)val);
-					}
+					xfree((char *)val);
 
 					state = 0;
 					commit_ptr = p + 1;
@@ -2739,27 +2734,22 @@ static pam_mysql_err_t pam_mysql_format_string(pam_mysql_ctx_t *ctx,
 
 			case 5:
 				if (*p == ']') {
-					const char *val;
+					const char *val = NULL;
 					int to_release;
 
 					if ((err = pam_mysql_get_option(ctx, &val, &to_release, name, (size_t)(p - name)))) {
 						goto out;
 					}
 
-					if (val == NULL) {
+					if (val == NULL)
 						val = xstrdup("");
-					}
 
 					if ((err = pam_mysql_str_append(pretval, val, strlen(val)))) {
-						if (to_release) {
-							xfree((char *)val);
-						}
+						xfree((char *)val);
 						goto out;
 					}
 
-					if (to_release) {
-						xfree((char *)val);
-					}
+					xfree((char *)val);
 
 					state = 0;
 					commit_ptr = p + 1;
