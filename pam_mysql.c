@@ -1,7 +1,7 @@
 /*
  * PAM module for MySQL
  *
- * Copyright (C) 1998-2005 Gunay Arslan and the contributors.
+ * Copyright (C) 1998-2016 Gunay Arslan et al.
  * All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or
@@ -31,8 +31,7 @@
  *        Fredrik Rambris (RPM spec file)
  *        Peter E. Stokke (chauthtok service support)
  *        Sergey Matveychuk (OpenPAM support)
- *
- * $Id: pam_mysql.c,v 1.10.2.15 2006/01/09 10:35:59 moriyoshi Exp $
+ * More fixes by Rik van der Heijden, <mail@rikvanderheijden.com>
  */
 
 #define _GNU_SOURCE
@@ -50,6 +49,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -730,7 +730,7 @@ static char * _password_base64_encode(unsigned char *input, int count, char *out
 static char *d7_hash(int use_md5, char *string1, int len1, char *string2, int len2)
 {
 	int len = len1 + len2;
-	char *combined = xcalloc(len, sizeof(char))
+	char *combined = xcalloc(len, sizeof(char));
 	char *output = NULL;
 
 	if (!combined) {
@@ -742,7 +742,7 @@ static char *d7_hash(int use_md5, char *string1, int len1, char *string2, int le
 	
 	if (!output) {
 		xfree(combined);
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "hash: Failed to allocate memory for combined value.");
+		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "hash: Failed to allocate memory for output value.");
 		return NULL;
 	}
 
@@ -750,9 +750,9 @@ static char *d7_hash(int use_md5, char *string1, int len1, char *string2, int le
 	memcpy(combined + len1, string2, len2);
 
 	if (use_md5)
-		MD5(combined, (unsigned long)len, output);
+		MD5((unsigned char *)combined, (unsigned long)len, (unsigned char *)output);
 	else
-		SHA512(combined, (unsigned long)len, output);
+		SHA512((unsigned char *)combined, (unsigned long)len, (unsigned char *)output);
 
 	xfree(combined);
 	return output;
@@ -761,7 +761,8 @@ static char *d7_hash(int use_md5, char *string1, int len1, char *string2, int le
 // The first 12 characters of an existing hash are its setting string.
 static char * d7_password_crypt(int use_md5, char *password, char *setting) {
 	char salt[9], *old, *new, *final;
-	int expected, count, count_log2 = d7_password_get_count_log2(setting);
+	int count, count_log2 = d7_password_get_count_log2(setting);
+	size_t expected;
 	int len;
 
 	// Hashes may be imported from elsewhere, so we allow != DRUPAL_HASH_COUNT
@@ -794,11 +795,14 @@ static char * d7_password_crypt(int use_md5, char *password, char *setting) {
 
 	new = xcalloc(129, sizeof(char));
 	memcpy(new, setting, 12);
-	_password_base64_encode(old, len, &new[12]);
+	_password_base64_encode((unsigned char *)old, len, &new[12]);
+
 	xfree(old);
+
 	// _password_base64_encode() of a 16 byte MD5 will always be 22 characters.
 	// _password_base64_encode() of a 64 byte sha512 will always be 86 characters.
 	expected = 12 + ((8 * len + 5) / 6);
+
 	if (strlen(new) != expected) {
 		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "_password_crypt: Hash length not as expected.");
 		xfree(new);
@@ -1700,6 +1704,7 @@ static pam_mysql_err_t pam_mysql_config_parser_init(
 /* {{{ pam_mysql_config_parser_destroy */
 static void pam_mysql_config_parser_destroy(pam_mysql_config_parser_t *parser)
 {
+	(void)parser;
 	/* do nothing */
 }
 /* }}} */
@@ -1939,6 +1944,7 @@ static pam_mysql_err_t pam_mysql_handle_entry(
 		pam_mysql_entry_handler_t *hdlr, int line_num, const char *name,
 		size_t name_len, const char *value, size_t value_len)
 {
+	(void)value_len;
 	pam_mysql_err_t err;
 	pam_mysql_option_t *opt = pam_mysql_find_option(hdlr->options, name,
 			name_len);
@@ -1980,6 +1986,7 @@ static pam_mysql_err_t pam_mysql_entry_handler_init(
 static void pam_mysql_entry_handler_destroy(
 		pam_mysql_entry_handler_t *hdlr)
 {
+	(void)hdlr;
 	/* do nothing */
 }
 /* }}} */
@@ -2302,7 +2309,9 @@ static void pam_mysql_release_ctx(pam_mysql_ctx_t *ctx)
 /* {{{ pam_mysql_cleanup_hdlr() */
 static void pam_mysql_cleanup_hdlr(pam_handle_t *pamh, void * voiddata, int status)
 {
-    pam_mysql_release_ctx((pam_mysql_ctx_t*)voiddata);
+	(void)pamh;
+	(void)status;
+	pam_mysql_release_ctx((pam_mysql_ctx_t*)voiddata);
 }
 /* }}} */
 
@@ -2312,8 +2321,7 @@ pam_mysql_err_t pam_mysql_retrieve_ctx(pam_mysql_ctx_t **pretval, pam_handle_t *
 {
 	pam_mysql_err_t err;
 
-	switch (pam_get_data(pamh, PAM_MODULE_NAME,
-				(PAM_GET_DATA_CONST void**)pretval)) {
+	switch (pam_get_data(pamh, PAM_MODULE_NAME, (const void**)pretval)) {
 		case PAM_NO_MODULE_DATA:
 			*pretval = NULL;
 			break;
@@ -3490,8 +3498,7 @@ static pam_mysql_err_t pam_mysql_converse(pam_mysql_ctx_t *ctx, char ***pretval,
 	va_start(ap, nargs);
 
 	/* obtain conversation interface */
-	if ((perr = pam_get_item(pamh, PAM_CONV,
-			(PAM_GET_ITEM_CONST void **)&conv))) {
+	if ((perr = pam_get_item(pamh, PAM_CONV, (const void **)&conv))) {
 		syslog(LOG_AUTHPRIV | LOG_ERR,
 				PAM_MYSQL_LOG_PREFIX "could not obtain coversation interface (reason: %s)", pam_strerror(pamh, perr));
 		err = PAM_MYSQL_ERR_UNKNOWN;
@@ -3533,9 +3540,7 @@ static pam_mysql_err_t pam_mysql_converse(pam_mysql_ctx_t *ctx, char ***pretval,
 		retval[i] = NULL;
 	}
 
-	switch ((perr = conv->conv(nargs,
-			(PAM_CONV_CONST struct pam_message **)msgs, &resps,
-			conv->appdata_ptr))) {
+	switch ((perr = conv->conv(nargs, (const struct pam_message **)msgs, &resps, conv->appdata_ptr))) {
 		case PAM_SUCCESS:
 			break;
 
@@ -3600,6 +3605,8 @@ out:
 static pam_mysql_err_t pam_mysql_query_user_caps(pam_mysql_ctx_t *ctx,
 		int *pretval, const char *user)
 {
+	(void)ctx;
+	(void)user;
 	*pretval = 0;
 
 	if (geteuid() == 0) {
@@ -3669,8 +3676,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags,
 	}
 
 	/* Get User */
-	if ((retval = pam_get_user(pamh, (PAM_GET_USER_CONST char **)&user,
-			NULL))) {
+	if ((retval = pam_get_user(pamh, (const char **)&user, NULL))) {
 		goto out;
 	}
 
@@ -3680,8 +3686,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags,
 		goto out;
 	} 
 
-	switch (pam_get_item(pamh, PAM_RHOST,
-			(PAM_GET_ITEM_CONST void **)&rhost)) {
+	switch (pam_get_item(pamh, PAM_RHOST, (const void **)&rhost)) {
 		case PAM_SUCCESS:
 			break;
 
@@ -3690,8 +3695,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags,
 	}
 
 	if (ctx->use_first_pass || ctx->try_first_pass) {
-		retval = pam_get_item(pamh, PAM_AUTHTOK,
-				(PAM_GET_ITEM_CONST void **)&passwd);
+		retval = pam_get_item(pamh, PAM_AUTHTOK, (const void **)&passwd);
 
 		switch (retval) {
 			case PAM_SUCCESS:
@@ -3915,8 +3919,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t * pamh, int flags, int argc,
 	}
 
 	/* Get User */
-	if ((retval = pam_get_user(pamh, (PAM_GET_USER_CONST char **)&user,
-			NULL))) {
+	if ((retval = pam_get_user(pamh, (const char **)&user, NULL))) {
 		goto out;
 	}
 
@@ -3926,8 +3929,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t * pamh, int flags, int argc,
 		goto out;
 	} 
 
-	switch (pam_get_item(pamh, PAM_RHOST,
-			(PAM_GET_ITEM_CONST void **)&rhost)) {
+	switch (pam_get_item(pamh, PAM_RHOST, (const void **)&rhost)) {
 		case PAM_SUCCESS:
 			break;
 
@@ -4087,8 +4089,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 		goto out;
 	}
 
-	switch (pam_get_item(pamh, PAM_RHOST,
-			(PAM_GET_ITEM_CONST void **)&rhost)) {
+	switch (pam_get_item(pamh, PAM_RHOST, (const void **)&rhost)) {
 		case PAM_SUCCESS:
 			break;
 
@@ -4180,8 +4181,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 	if (!(caps & PAM_MYSQL_CAP_CHAUTHTOK_OTHERS) &&
 			!(stat & PAM_MYSQL_USER_STAT_NULL_PASSWD)) {
 		if (ctx->use_first_pass || ctx->try_first_pass) {
-			retval = pam_get_item(pamh, PAM_OLDAUTHTOK,
-					(PAM_GET_ITEM_CONST void **)&old_passwd);
+			retval = pam_get_item(pamh, PAM_OLDAUTHTOK, (const void **)&old_passwd);
 			switch (retval) {
 				case PAM_SUCCESS:
 					break;
@@ -4277,8 +4277,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 		}
 	}
 
-	retval = pam_get_item(pamh, PAM_AUTHTOK,
-			(PAM_GET_ITEM_CONST void **)&new_passwd);
+	retval = pam_get_item(pamh, PAM_AUTHTOK, (const void **)&new_passwd);
 
 	switch (retval) {
 		case PAM_SUCCESS:
@@ -4450,8 +4449,7 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc,
 		goto out;
 	}
 
-	switch (pam_get_item(pamh, PAM_RHOST,
-			(PAM_GET_ITEM_CONST void **)&rhost)) {
+	switch (pam_get_item(pamh, PAM_RHOST, (const void **)&rhost)) {
 		case PAM_SUCCESS:
 			break;
 
@@ -4553,8 +4551,7 @@ PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc,
 		goto out;
 	} 
 
-	switch (pam_get_item(pamh, PAM_RHOST,
-			(PAM_GET_ITEM_CONST void **)&rhost)) {
+	switch (pam_get_item(pamh, PAM_RHOST, (const void **)&rhost)) {
 		case PAM_SUCCESS:
 			break;
 
