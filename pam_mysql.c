@@ -2713,15 +2713,19 @@ static pam_mysql_err_t pam_mysql_format_string(pam_mysql_ctx_t *ctx,
 						goto out;
 					}
 
-					if (val == NULL)
+					if (val == NULL) {
 						val = xstrdup("");
+						to_release = 1;
+					}
 
 					if ((err = pam_mysql_quick_escape(ctx, pretval, val, strlen(val)))) {
-						xfree((char *)val);
+						if (to_release)
+							xfree((char *)val);
 						goto out;
 					}
 
-					xfree((char *)val);
+					if (to_release)
+						xfree((char *)val);
 
 					state = 0;
 					commit_ptr = p + 1;
@@ -2742,15 +2746,18 @@ static pam_mysql_err_t pam_mysql_format_string(pam_mysql_ctx_t *ctx,
 						goto out;
 					}
 
-					if (val == NULL)
+					if (val == NULL) {
 						val = xstrdup("");
-
-					if ((err = pam_mysql_str_append(pretval, val, strlen(val)))) {
-						xfree((char *)val);
-						goto out;
+						to_release = 1;
 					}
 
-					xfree((char *)val);
+					if ((err = pam_mysql_str_append(pretval, val, strlen(val)))) {
+						if (to_release)
+							xfree((char *)val);
+						goto out;
+					}
+					if (to_release)
+						xfree((char *)val);
 
 					state = 0;
 					commit_ptr = p + 1;
@@ -2838,7 +2845,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 			break;
 
 		case 2:
-			syslog(LOG_AUTHPRIV | LOG_ERR, "%s", PAM_MYSQL_LOG_PREFIX "SELECT returned an indetermined result.");
+			syslog(LOG_AUTHPRIV | LOG_ERR, "%s", PAM_MYSQL_LOG_PREFIX "SELECT returned multiple results.");
 			err = PAM_MYSQL_ERR_UNKNOWN;
 			goto out;
 	}
@@ -3599,7 +3606,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags,
 {
 	int retval;
 	int err;
-	const char *user;
+	const char *user = NULL;
 	const char *rhost;
 	char *passwd = NULL;
 	pam_mysql_ctx_t *ctx = NULL;
