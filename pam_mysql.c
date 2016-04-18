@@ -788,6 +788,12 @@ static char * d7_password_crypt(int use_md5, char *password, char *setting) {
 	}
 
 	final = xcalloc(DRUPAL_HASH_LENGTH + 1, sizeof(char));
+	if (!final) {
+		xfree(new);
+		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "_password_crypt: Failed to allocate memory for output value.");
+		return NULL;
+	}
+
 	strncpy(final, new, DRUPAL_HASH_LENGTH);
 	xfree(new);
 	return final;
@@ -2275,11 +2281,11 @@ static void pam_mysql_destroy_ctx(pam_mysql_ctx_t *ctx)
 /* {{{ pam_mysql_release_ctx() */
 static void pam_mysql_release_ctx(pam_mysql_ctx_t *ctx)
 {
-	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_release_ctx() called.");
-	}
-
 	if (ctx != NULL) {
+		if (ctx->verbose) {
+			syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_release_ctx() called.");
+		}
+
 		pam_mysql_destroy_ctx(ctx);
 		xfree(ctx);
 	}
@@ -2287,11 +2293,11 @@ static void pam_mysql_release_ctx(pam_mysql_ctx_t *ctx)
 /* }}} */
 
 /* {{{ pam_mysql_cleanup_hdlr() */
-static void pam_mysql_cleanup_hdlr(pam_handle_t *pamh, void * voiddata, int status)
+static void pam_mysql_cleanup_hdlr(pam_handle_t *pamh, void *voiddata, int status)
 {
 	(void)pamh;
 	(void)status;
-	pam_mysql_release_ctx((pam_mysql_ctx_t*)voiddata);
+	pam_mysql_release_ctx((pam_mysql_ctx_t *)voiddata);
 }
 /* }}} */
 
