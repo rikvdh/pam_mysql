@@ -1,7 +1,6 @@
 pam_mysql - A PAM authentication module against MySQL database
 ==============================================================
-[![Build Status](https://travis-ci.org/rikvdh/pam-MySQL.svg?branch=master)](https://travis-ci.org/rikvdh/pam-MySQL)
-[![Coverity Scan Build Status](https://scan.coverity.com/projects/8591/badge.svg)](https://scan.coverity.com/projects/rikvdh-pam-mysql)
+[![Build Status](https://travis-ci.org/rikvdh/pam_mysql.svg?branch=master)](https://travis-ci.org/rikvdh/pam_mysql)
 
 Introduction
 ------------
