@@ -24,3 +24,16 @@ debian/files
 debian/libpam-mysql.postrm.debhelper
 debian/libpam-mysql.substvars
 analysis
+Makefile.in
+aclocal.m4
+autom4te.cache/
+compile
+config.guess
+config.sub
+configure
+depcomp
+install-sh
+ltmain.sh
+m4/
+missing
+src/.dirstamp
