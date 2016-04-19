@@ -1,28 +1,23 @@
-dnl $Id: configure.in,v 1.6.2.7 2006/01/09 10:35:59 moriyoshi Exp $
-sinclude([pkg.m4])
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.57])
-AC_INIT(pam_mysql, 0.8.0)
-AM_INIT_AUTOMAKE(pam_mysql, 0.8.0)
-AC_CONFIG_SRCDIR(pam_mysql.c)
-AM_CONFIG_HEADER(config.h)
-AM_MAINTAINER_MODE
+AC_PREREQ([2.61])
+AC_INIT([pam_mysql], [0.8.0],[mail@rikvanderheijden.com])
+AC_CONFIG_SRCDIR([src/pam_mysql.c])
+AC_CONFIG_LIBOBJ_DIR([src])
+AM_INIT_AUTOMAKE([0.8.0])
 
-AC_SUBST(PACKAGE_VERSION)
-AC_SUBST(PACKAGE_NAME)
-AC_SUBST(PACKAGE_TARNAME)
+AC_PROG_CC
+AC_PROG_LIBTOOL
+AC_PROG_INSTALL
+AC_CANONICAL_HOST
+AC_CANONICAL_BUILD
+AC_PROG_RANLIB
+AM_PROG_CC_C_O
 
 enable_static="no"
 enable_shared="yes"
 
-AC_PROG_YACC
-AC_PROG_CXX
-AC_PROG_CC
-AC_PROG_CPP
-AC_PROG_LN_S
-AC_PROG_MAKE_SET
-AC_PROG_INSTALL
-AC_PROG_LIBTOOL
 
 AC_HEADER_STDC
 AC_CHECK_HEADERS([arpa/inet.h netinet/in.h netdb.h string.h strings.h sys/socket.h sys/types.h sys/stat.h sys/param.h fcntl.h syslog.h unistd.h stdarg.h errno.h crypt.h])
@@ -146,6 +141,4 @@ AC_SUBST(INCLUDES)
 AC_SUBST(PAM_MODS_DIR)
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT([pam_mysql.spec])
-
-dnl vim600: sts=2 sw=2 ts=2 et
 
