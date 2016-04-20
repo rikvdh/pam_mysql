@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 2.8.7)
-cmake_policy(SET CMP0048 NEW)
 
-project(pam_mysql
-	VERSION 0.8.1
-	LANGUAGES C)
+project(pam_mysql C)
+set(PROJECT_VERSION 0.8.1)
 
 include(CheckIncludeFiles)
 include("cmake/add_cflag_if_supported.cmake")
