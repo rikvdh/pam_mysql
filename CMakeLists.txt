@@ -35,6 +35,7 @@ elseif()
 endif()
 
 find_package(MySQLClient REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 check_include_files(unistd.h HAVE_UNISTD_H)
 check_include_files(string.h HAVE_STRING_H)
@@ -55,9 +56,10 @@ check_include_files(netdb.h HAVE_NETDB_H)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 include_directories(
+	${OPENSSL_INCLUDE_DIR}
 	${CMAKE_CURRENT_BINARY_DIR})
 
 set(CFILES src/pam_mysql.c)
 
 add_library(${PROJECT_NAME} SHARED ${CFILES})
-target_link_libraries(${PROJECT_NAME} ${MYSQLCLIENT_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${MYSQLCLIENT_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY})

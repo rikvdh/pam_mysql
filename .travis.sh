@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -xe
+
 sudo apt-get update -qq || true
 sudo apt-get install -qq -y --no-install-recommends libpam-dev
 
@@ -6,8 +9,9 @@ if [[ "$CC" == "scan-build" ]]; then
     unset CC
     unset CXX
 
-    ./autogen.sh
-    scan-build -o analysis --status-bugs ./configure --prefix=/usr --with-openssl --with-pam_mods_dir=/lib/security --with-pam=/usr
+    mkdir build
+    cd build
+    cmake ..
     scan-build -o analysis --status-bugs make
 elif [[ "$CC" == "debian" ]]; then
     unset CC
@@ -17,7 +21,8 @@ elif [[ "$CC" == "debian" ]]; then
 
     debuild --no-lintian -us -uc -b
 else
-    ./autogen.sh
-    ./configure --prefix=/usr --with-openssl --with-pam_mods_dir=/lib/security --with-pam=/usr
+    mkdir build
+    cd build
+    cmake ..
     make
 fi

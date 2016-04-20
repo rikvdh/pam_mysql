@@ -116,22 +116,8 @@
 #include <crypt.h>
 #endif
 
-#ifndef HAVE_OPENSSL
-#ifdef HAVE_MD5_H
-#include <md5.h>
-#endif
-
-#if defined(HAVE_SASL_MD5_H) && (defined(HAVE_CYRUS_SASL_V1) || defined(HAVE_CYRUS_SASL_V2))
-#define USE_SASL_MD5
-#include <md5global.h>
-#include <md5.h>
-#endif
-#endif
-
-#ifdef HAVE_OPENSSL
 #include <openssl/md5.h>
 #include <openssl/sha.h>
-#endif
 
 #ifdef HAVE_MYSQL_H
 #include <mysql.h>
@@ -172,8 +158,7 @@
 #define PAM_AUTHTOK_RECOVERY_ERR PAM_AUTHTOK_RECOVER_ERR
 #endif
 
-#define PAM_MODULE_NAME  "pam_mysql"
-#define PAM_MYSQL_LOG_PREFIX PAM_MODULE_NAME " - "
+#define PAM_MYSQL_LOG_PREFIX PROJECT_NAME " - "
 #define PLEASE_ENTER_PASSWORD "Password:"
 #define PLEASE_ENTER_OLD_PASSWORD "(Current) Password:"
 #define PLEASE_ENTER_NEW_PASSWORD "(New) Password:"
@@ -553,32 +538,7 @@ static void *memcspn(void *buf, size_t buf_len, const unsigned char *delims,
 /* }}} */
 
 /* {{{ pam_mysql_md5_data
- * 
- * AFAIK, only FreeBSD has MD5Data() defined in md5.h
- * better MD5 support will appear in 0.5
  */
-#ifdef HAVE_MD5DATA
-#define HAVE_PAM_MYSQL_MD5_DATA
-#define pam_mysql_md5_data MD5Data
-#elif defined(HAVE_OPENSSL) || (defined(HAVE_SASL_MD5_H) && defined(USE_SASL_MD5)) || (!defined(HAVE_OPENSSL) && defined(HAVE_SOLARIS_MD5))
-#if defined(USE_SASL_MD5)
-static unsigned char *MD5(const unsigned char *d, unsigned int n,
-		unsigned char *md)
-{
-	MD5_CTX ctx;
-
-	_sasl_MD5Init(&ctx);
-
-	_sasl_MD5Update(&ctx, (unsigned char *)d, n);
-
-	_sasl_MD5Final(md, &ctx);
-
-	return md;
-}
-#elif defined(USE_SOLARIS_MD5)
-#define MD5(d, n, md) md5_calc(d, md, n)
-#endif
-#define HAVE_PAM_MYSQL_MD5_DATA
 static char *pam_mysql_md5_data(const unsigned char *d, unsigned int sz, char *md)
 {
 	size_t i, j;
@@ -600,12 +560,9 @@ static char *pam_mysql_md5_data(const unsigned char *d, unsigned int sz, char *m
 
 	return md;
 }
-#endif
 /* }}} */
 
 /* {{{ pam_mysql_sha1_data */
-#if defined(HAVE_OPENSSL)
-#define HAVE_PAM_MYSQL_SHA1_DATA
 static char *pam_mysql_sha1_data(const unsigned char *d, unsigned int sz, char *md)
 {
 	size_t i, j;
@@ -627,11 +584,8 @@ static char *pam_mysql_sha1_data(const unsigned char *d, unsigned int sz, char *
 
 	return md;
 }
-#endif
 /* }}} */
 
-#if defined(HAVE_PAM_MYSQL_SHA1_DATA) && defined(HAVE_PAM_MYSQL_MD5_DATA)
-#define HAVE_PAM_MYSQL_DRUPAL7
 /**
  * The standard log2 number of iterations for password stretching. This should
  * increase by 1 every Drupal version in order to counteract increases in the
@@ -841,7 +795,6 @@ static int pam_mysql_drupal7_data(const unsigned char *pwd, unsigned int sz, cha
 	xfree(hashed);
 	return 0;
 }
-#endif
 /* }}} */
 
 /* {{{ option handlers */
@@ -2273,7 +2226,7 @@ pam_mysql_err_t pam_mysql_retrieve_ctx(pam_mysql_ctx_t **pretval, pam_handle_t *
 {
 	pam_mysql_err_t err;
 
-	switch (pam_get_data(pamh, PAM_MODULE_NAME, (const void**)pretval)) {
+	switch (pam_get_data(pamh, PROJECT_NAME, (const void**)pretval)) {
 		case PAM_NO_MODULE_DATA:
 			*pretval = NULL;
 			break;
@@ -2293,7 +2246,7 @@ pam_mysql_err_t pam_mysql_retrieve_ctx(pam_mysql_ctx_t **pretval, pam_handle_t *
 		}
 		
 		/* give the data back to PAM for management */
-		if (pam_set_data(pamh, PAM_MODULE_NAME, (void*)*pretval, pam_mysql_cleanup_hdlr)) {
+		if (pam_set_data(pamh, PROJECT_NAME, (void*)*pretval, pam_mysql_cleanup_hdlr)) {
 			syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "failed to set context to PAM at " __FILE__ ":%d", __LINE__);
 			xfree(*pretval);
 			*pretval = NULL;
@@ -2563,11 +2516,7 @@ static pam_mysql_err_t pam_mysql_quick_escape(pam_mysql_ctx_t *ctx, pam_mysql_st
 		return PAM_MYSQL_ERR_ALLOC;
 	}
 
-#ifdef HAVE_MYSQL_REAL_ESCAPE_STRING
 	len = mysql_real_escape_string(ctx->mysql_hdl, &append_to->p[append_to->len], val, val_len);
-#else
-	len = mysql_escape_string(&append_to->p[append_to->len], val, val_len);
-#endif
 	append_to->p[append_to->len += len] = '\0';
 
 	return PAM_MYSQL_ERR_SUCCESS;
@@ -2793,11 +2742,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s", query.p);
 	}
 
-#ifdef HAVE_MYSQL_REAL_QUERY
 	if (mysql_real_query(ctx->mysql_hdl, query.p, query.len)) {
-#else
-	if (mysql_query(ctx->mysql_hdl, query.p)) {
-#endif
 		err = PAM_MYSQL_ERR_DB;
 		goto out;
 	}
@@ -2871,7 +2816,6 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 
 				/* MD5 hash (not MD5 crypt()) */
 				case 3: {
-#ifdef HAVE_PAM_MYSQL_MD5_DATA
 					char buf[33];
 					pam_mysql_md5_data((unsigned char*)passwd, strlen(passwd),
 							buf);
@@ -2880,13 +2824,9 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 						char *p = buf - 1;
 						while (*(++p)) *p = '\0';
 					}
-#else
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "non-crypt()ish MD5 hash is not supported in this build.");
-#endif
 				} break;
 
 				case 4: {
-#ifdef HAVE_PAM_MYSQL_SHA1_DATA
 					char buf[41];
 					pam_mysql_sha1_data((unsigned char*)passwd, strlen(passwd),
 							buf);
@@ -2895,13 +2835,9 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 						char *p = buf - 1;
 						while (*(++p)) *p = '\0';
 					}
-#else
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "non-crypt()ish SHA1 hash is not supported in this build.");
-#endif
 				} break;
 
 				case 5: {
-#if defined(HAVE_PAM_MYSQL_MD5_DATA) && defined(HAVE_PAM_MYSQL_SHA1_DATA)
 					char buf[128];
 					memset(buf, 0, 128);
 					pam_mysql_drupal7_data((unsigned char*)passwd, strlen(passwd),
@@ -2911,16 +2847,12 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 						char *p = buf - 1;
 						while (*(++p)) *p = '\0';
 					}
-#else
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "non-crypt()ish MD5 hash or SHA support lacking in this build.");
-#endif
 				} break;
 
 /* joomla 1.5 like passwd*/
 			case 6:
 				{
 				/* Joomla 1.5 like password */
-#ifdef HAVE_PAM_MYSQL_MD5_DATA
 					char buf[33];
 					buf[32]=0;
 
@@ -2949,13 +2881,10 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 					}
 
 					xfree(tmp);
-#else
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "non-crypt()ish MD5 hash is not supported in this build.");
-#endif
 				} break;
 
-				default: {
-				}
+				default:
+					break;
 			}
 		}
 	} else {
@@ -3109,7 +3038,6 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 				break;
 
 			case 3:
-#ifdef HAVE_PAM_MYSQL_MD5_DATA
 				if (NULL == (encrypted_passwd = xcalloc(32 + 1, sizeof(char)))) {
 					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					err = PAM_MYSQL_ERR_ALLOC;
@@ -3117,15 +3045,9 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 				}
 				pam_mysql_md5_data((unsigned char*)new_passwd,
 						strlen(new_passwd), encrypted_passwd);
-#else
-				syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "non-crypt()ish MD5 hash is not supported in this build.");
-				err = PAM_MYSQL_ERR_NOTIMPL;
-				goto out;
-#endif
 				break;
 
 			case 4:
-#ifdef HAVE_PAM_MYSQL_SHA1_DATA
 				if (NULL == (encrypted_passwd = xcalloc(40 + 1, sizeof(char)))) {
 					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					err = PAM_MYSQL_ERR_ALLOC;
@@ -3133,16 +3055,10 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 				}
 				pam_mysql_sha1_data((unsigned char*)new_passwd,
 						strlen(new_passwd), encrypted_passwd);
-#else
-				syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "non-crypt()ish SHA1 hash is not supported in this build.");
-				err = PAM_MYSQL_ERR_NOTIMPL;
-				goto out;
-#endif
 				break;
 
 			case 6:
 				{
-#ifdef HAVE_PAM_MYSQL_MD5_DATA
 				if (NULL == (encrypted_passwd = xcalloc(32 + 1+ 32 +1, sizeof(char)))) {
 					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					err = PAM_MYSQL_ERR_ALLOC;
@@ -3178,11 +3094,6 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 				strcat(encrypted_passwd,":");
 				strcat(encrypted_passwd,salt);
 
-#else
-				syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "non-crypt()ish MD5 hash is not supported in this build.");
-				err = PAM_MYSQL_ERR_NOTIMPL;
-				goto out;
-#endif
 				break;
 				}
 			default:
@@ -3200,11 +3111,7 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 		goto out;
 	}
 
-#ifdef HAVE_MYSQL_REAL_QUERY
 	if (mysql_real_query(ctx->mysql_hdl, query.p, query.len)) {
-#else
-	if (mysql_query(ctx->mysql_hdl, query.p)) {
-#endif
 		err = PAM_MYSQL_ERR_DB;
 		goto out;
 	}
@@ -3263,11 +3170,7 @@ static pam_mysql_err_t pam_mysql_query_user_stat(pam_mysql_ctx_t *ctx,
 		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s", query.p);
 	}
 
-#ifdef HAVE_MYSQL_REAL_QUERY
 	if (mysql_real_query(ctx->mysql_hdl, query.p, query.len)) {
-#else
-	if (mysql_query(ctx->mysql_hdl, query.p)) {
-#endif
 		err = PAM_MYSQL_ERR_DB;
 		goto out;
 	}
@@ -3399,11 +3302,7 @@ static pam_mysql_err_t pam_mysql_sql_log(pam_mysql_ctx_t *ctx, const char *msg, 
 		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s", query.p);
 	}
 
-#ifdef HAVE_MYSQL_REAL_QUERY
 	if (mysql_real_query(ctx->mysql_hdl, query.p, query.len)) {
-#else
-	if (mysql_query(ctx->mysql_hdl, query.p)) {
-#endif
 		err = PAM_MYSQL_ERR_DB;
 		goto out;
 	}
@@ -4553,7 +4452,7 @@ out:
 /* static module data */
 
 struct pam_module _pam_mysql_modstruct = {
-    PAM_MODULE_NAME,
+    PROJECT_NAME,
     pam_sm_authenticate,
     pam_sm_setcred,
     pam_sm_acct_mgmt,
