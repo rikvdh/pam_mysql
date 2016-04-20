@@ -1,0 +1,16 @@
+#cmakedefine HAVE_UNISTD_H
+#cmakedefine HAVE_STRING_H
+#cmakedefine HAVE_STDARG_H
+#cmakedefine HAVE_SYSLOG_H
+#cmakedefine HAVE_ERRNO_H
+#cmakedefine HAVE_MYSQL_H
+#cmakedefine HAVE_MYSQL_MYSQL_H
+#cmakedefine HAVE_PAM_APPL_H
+#cmakedefine HAVE_SECURITY_PAM_APPL_H
+#cmakedefine HAVE_PAM_MODULES_H
+#cmakedefine HAVE_SECURITY_PAM_MODULES_H
+#cmakedefine HAVE_SYS_SOCKET_H
+#cmakedefine HAVE_SYS_PARAM_H
+#cmakedefine HAVE_ARPA_INET_H
+#cmakedefine HAVE_FCNTL_H
+#cmakedefine HAVE_NETDB_H

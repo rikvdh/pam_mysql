@@ -41,11 +41,8 @@
 #define PAM_SM_SESSION
 #define PAM_SM_PASSWORD
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 /* {{{ includes */
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -138,6 +135,8 @@
 
 #ifdef HAVE_MYSQL_H
 #include <mysql.h>
+#elif defined(HAVE_MYSQL_MYSQL_H)
+#include <mysql/mysql.h>
 #endif
 
 /*
@@ -152,14 +151,18 @@
 #define PAM_SM_SESSION
 #define PAM_SM_PASSWORD
 
+#ifdef HAVE_PAM_APPL_H
 #include <pam_appl.h>
-#include <pam_modules.h>
-
-/* }}} */
-
-#ifndef PAM_EXTERN
-#define PAM_EXTERN
+#elif defined(HAVE_SECURITY_PAM_APPL_H)
+#include <security/pam_appl.h>
 #endif
+
+#ifdef HAVE_PAM_MODULES_H
+#include <pam_modules.h>
+#elif defined(HAVE_SECURITY_PAM_MODULES_H)
+#include <security/pam_modules.h>
+#endif
+/* }}} */
 
 #ifndef LOG_AUTHPRIV
 #define LOG_AUTHPRIV LOG_AUTH
@@ -2058,40 +2061,6 @@ static pam_mysql_err_t pam_mysql_get_host_info(pam_mysql_ctx_t *ctx,
 		size_t hent_size = sizeof(struct hostent) + 64;
 		int herr = 0;
 
-#if defined(HAVE_SUNOS_GETHOSTBYNAME_R)
-		for (;;) {
-			if (NULL == (tmp = xrealloc(hent, hent_size, sizeof(char)))) {
-				syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
-
-				if (hent != NULL) {
-					xfree(hent);
-				}
-
-				return PAM_MYSQL_ERR_ALLOC;
-			}
-
-			hent = tmp;
-
-			if (gethostbyname_r(hostname, hent,
-					(char *)hent + sizeof(struct hostent),
-					hent_size - sizeof(struct hostent), &herr) != NULL) {
-				break;
-			}
-
-			if (errno != ERANGE) {
-				xfree(hent);
-				return PAM_MYSQL_ERR_UNKNOWN;
-			}
-
-			if (hent_size + 32 < hent_size) {
-				syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
-				xfree(hent);
-				return PAM_MYSQL_ERR_ALLOC;
-			}
-
-			hent_size += 32;
-		}
-#elif defined(HAVE_GNU_GETHOSTBYNAME_R)
 		for (;;) {
 			if (NULL == (tmp = xrealloc(hent, hent_size, sizeof(char)))) {
 				syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
@@ -2124,9 +2093,6 @@ static pam_mysql_err_t pam_mysql_get_host_info(pam_mysql_ctx_t *ctx,
 
 			hent_size += 32;
 		}
-#else
-		return PAM_MYSQL_ERR_NOTIMPL;
-#endif
 
 		switch (hent->h_addrtype) {
 			case AF_INET:

@@ -37,3 +37,4 @@ ltmain.sh
 m4/
 missing
 src/.dirstamp
+build

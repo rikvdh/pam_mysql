@@ -1,0 +1,63 @@
+cmake_minimum_required(VERSION 3.0)
+project(pam_mysql
+	VERSION 0.8.1
+	LANGUAGES C)
+
+include(CheckIncludeFiles)
+include("cmake/add_cflag_if_supported.cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+
+add_cflag_if_supported("-std=gnu99")
+add_cflag_if_supported("-Wall")
+add_cflag_if_supported("-Wextra")
+#add_cflag_if_supported("-Wshadow")
+add_cflag_if_supported("-D_FORTIFY_SOURCE=2")
+add_cflag_if_supported("-fstrict-aliasing")
+add_cflag_if_supported("-Wformat")
+add_cflag_if_supported("-Wformat-security")
+add_cflag_if_supported("-Wmaybe-uninitialized")
+add_cflag_if_supported("-Wmissing-variable-declarations")
+add_cflag_if_supported("-Wshorten-64-to-32")
+add_cflag_if_supported("-Wimplicit-function-declaration")
+#add_cflag_if_supported("-Wredundant-decls")
+add_cflag_if_supported("-Wundef")
+#add_cflag_if_supported("-Werror")
+add_cflag_if_supported("-Wl,-z,relro")
+add_cflag_if_supported("-Wl,-z,now")
+add_cflag_if_supported("-fPIC")
+
+if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    include(CTest)
+    add_cflag_if_supported("-ggdb")
+    add_cflag_if_supported("-O0")
+elseif()
+    add_cflag_if_supported("-O2")
+endif()
+
+find_package(MySQLClient REQUIRED)
+
+check_include_files(unistd.h HAVE_UNISTD_H)
+check_include_files(string.h HAVE_STRING_H)
+check_include_files(stdarg.h HAVE_STDARG_H)
+check_include_files(syslog.h HAVE_SYSLOG_H)
+check_include_files(errno.h HAVE_ERRNO_H)
+check_include_files(mysql.h HAVE_MYSQL_H)
+check_include_files(mysql/mysql.h HAVE_MYSQL_MYSQL_H)
+check_include_files(pam_appl.h HAVE_PAM_APPL_H)
+check_include_files(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
+check_include_files(pam_modules.h HAVE_PAM_MODULES_H)
+check_include_files(security/pam_modules.h HAVE_SECURITY_PAM_MODULES_H)
+check_include_files(sys/socket.h HAVE_SYS_SOCKET_H)
+check_include_files(sys/param.h HAVE_SYS_PARAM_H)
+check_include_files(arpa/inet.h HAVE_ARPA_INET_H)
+check_include_files(fcntl.h HAVE_FCNTL_H)
+check_include_files(netdb.h HAVE_NETDB_H)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+
+include_directories(
+	${CMAKE_CURRENT_BINARY_DIR})
+
+set(CFILES src/pam_mysql.c)
+
+add_library(${PROJECT_NAME} SHARED ${CFILES})
+target_link_libraries(${PROJECT_NAME} ${MYSQLCLIENT_LIBRARIES})
