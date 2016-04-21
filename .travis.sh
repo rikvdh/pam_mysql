@@ -30,7 +30,7 @@ else
         cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_CODECOVERAGE=ON ../..
         make
         make test
-        coveralls --gcov-options "--object-directory CMakeFiles/pam_mysql.dir" -r ../.. -b . -i ../../src
+        coveralls --gcov-options "--object-directory CMakeFiles/pam_mysql.dir" -r ../.. -b . -i src
     else
         cmake -DCMAKE_BUILD_TYPE=Debug ../..
         make
