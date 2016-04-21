@@ -1,66 +1,30 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-export DEB_BUILD_MAINT_OPTIONS = hardening=+all
-DPKG_EXPORT_BUILDFLAGS = 1
-include /usr/share/dpkg/buildflags.mk
+export BUILDDIR := build
 
-arrange: arrange-stamp
-arrange-stamp: install
-	touch arrange-stamp
+export DEB_CXXFLAGS_MAINT_APPEND := $(shell dpkg-buildflags --get CPPFLAGS)
+export DEB_CFLAGS_MAINT_APPEND := $(shell dpkg-buildflags --get CPPFLAGS)
+export DEB_LDFLAGS_MAINT_APPEND := -Wl,--as-needed
 
-binary: binary-stamp
-binary-stamp: binary-arch binary-indep
-	touch binary-stamp
+override_dh_auto_configure:
+	rm -rf $(BUILDDIR) && mkdir -p $(BUILDDIR)
+	cd $(BUILDDIR) && cmake ..
 
-binary-arch: binary-arch-stamp
-binary-arch-stamp: arrange
-	dh_testdir
-	dh_testroot
-	dh_installdocs
-	dh_installdebconf
-	dh_installchangelogs ChangeLog upstream
-	dh_link
-	dh_shlibdeps
-	dh_strip
-	dh_compress
-	dh_fixperms
-	dh_installdeb
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb
-	touch binary-arch-stamp
+override_dh_auto_test:
+	#HOME="`pwd`/$(BUILDDIR)" dh_auto_test --buildsystem=cmake -- ARGS="-E CTestTestUpload"
+	echo $@
 
-binary-indep: binary-indep-stamp
-binary-indep-stamp: arrange
-	touch binary-indep-stamp
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -rf $(BUILDDIR)
 
-build: build-stamp
-build-stamp: config
-	dh_testdir
-	$(MAKE)
-	touch build-stamp
-
-clean:
-	dh_testdir
-	dh_testroot
-	-$(MAKE) distclean
-	dh_clean arrange-stamp binary-stamp binary-arch-stamp binary-indep-stamp build-stamp config-stamp install-stamp
-
-config: config-stamp
-config-stamp:
-	dh_testdir
-	./configure --prefix=/usr --with-openssl --with-pam_mods_dir=/lib/security --with-pam=/usr
-	touch config-stamp
-
-install: install-stamp
-install-stamp: build
-	dh_testdir
-	dh_installdirs
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/libpam-mysql
-	# No, we _definitely_ don't need libtool's .la files in lib/security
-	rm -f debian/libpam-mysql/lib/security/pam_mysql.la
+override_dh_install:
+	#$(MAKE) install DESTDIR=$(CURDIR)/debian/libpam-mysql
 	install -m 640 debian/pam-mysql.conf debian/libpam-mysql/etc
-	touch install-stamp
+	dh_install --list-missing
 
-.PHONY: build clean binary-indep binary-arch binary install force-clean
+%:
+	dh $@ --parallel --builddirectory=$(BUILDDIR)
+
+.PHONY: override_dh_auto_configure override_dh_auto_clean
