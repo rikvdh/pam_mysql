@@ -17,7 +17,7 @@ add_library(Unity STATIC Unity/src/unity.c Unity/extras/fixture/src/unity_fixtur
 foreach(test ${TESTS})
 	add_executable(${test} ${test}.c)
 	add_dependencies(${test} ${PROJECT_NAME} Unity)
-	target_link_libraries(${test} ${PROJECT_NAME} Unity pam crypt)
+	target_link_libraries(${test} ${PROJECT_NAME} Unity pam pam_misc crypt)
 	add_test(NAME "${test}" COMMAND "${CMAKE_CURRENT_BINARY_DIR}/${test}")
 endforeach()
 
