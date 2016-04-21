@@ -1,10 +1,15 @@
+Version 0.9.0   2016/x/xx  <mail@rikvanderheijden.com>
+
+* Fix possible null-pointer dereferences
+* Replaced automake for Cmake
+* Cleanup codebase
+
 Version 0.8.0   2016/4/16  <mail@rikvanderheijden.com>
 
 * Using semver
 * Fix memory-leak from libmysql
 * Use source-fortification
 * Fixed compilation warnings
-
 
 Version 0.7-RC1   2006/1/10  <moriyoshi@users.sourceforge.net>
 
