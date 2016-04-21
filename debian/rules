@@ -9,7 +9,7 @@ export DEB_LDFLAGS_MAINT_APPEND := -Wl,--as-needed
 
 override_dh_auto_configure:
 	rm -rf $(BUILDDIR) && mkdir -p $(BUILDDIR)
-	cd $(BUILDDIR) && cmake ..
+	cd $(BUILDDIR) && cmake -DCMAKE_BUILD_TYPE=Release ..
 
 override_dh_auto_test:
 	$(MAKE) -C $(BUILDDIR) test
