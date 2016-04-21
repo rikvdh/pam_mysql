@@ -24,9 +24,18 @@ else
     mkdir -p build/Debug
     mkdir -p build/Release
     cd build/Debug
-    cmake -DCMAKE_BUILD_TYPE=Debug ../..
-    make
-    make test
+    if [[ "$CC" == "gcc" ]]; then
+        pip install --user cpp-coveralls urllib3[secure] || exit $?
+
+        cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_CODECOVERAGE=ON ../..
+        make
+        make test
+        coveralls --gcov-options "--object-directory CMakeFiles/pam_mysql.dir" -r ../../ -b . -i ../..
+    else
+        cmake -DCMAKE_BUILD_TYPE=Debug ../..
+        make
+        make test
+    fi
 
     cd ../Release
     cmake -DCMAKE_BUILD_TYPE=Release ../..
