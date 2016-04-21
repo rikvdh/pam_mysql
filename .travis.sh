@@ -24,12 +24,12 @@ else
     mkdir -p build/Debug
     mkdir -p build/Release
     cd build/Debug
-    cmake -DCMAKE_BUILD_TYPE=Debug ..
+    cmake -DCMAKE_BUILD_TYPE=Debug ../..
     make
     make test
 
     cd ../Release
-    cmake -DCMAKE_BUILD_TYPE=Release ..
+    cmake -DCMAKE_BUILD_TYPE=Release ../..
     make
     make test
 fi
