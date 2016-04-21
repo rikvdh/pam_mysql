@@ -12,8 +12,7 @@ override_dh_auto_configure:
 	cd $(BUILDDIR) && cmake ..
 
 override_dh_auto_test:
-	#HOME="`pwd`/$(BUILDDIR)" dh_auto_test --buildsystem=cmake -- ARGS="-E CTestTestUpload"
-	echo $@
+	$(MAKE) -C $(BUILDDIR) test
 
 override_dh_auto_clean:
 	dh_auto_clean

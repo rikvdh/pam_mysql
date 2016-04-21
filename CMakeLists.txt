@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 2.8.7)
 project(pam_mysql C)
 set(PROJECT_VERSION 0.8.1)
 
+include(CTest)
 include(CheckIncludeFiles)
 include("cmake/add_cflag_if_supported.cmake")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
@@ -63,3 +64,5 @@ set(CFILES src/pam_mysql.c)
 
 add_library(${PROJECT_NAME} SHARED ${CFILES})
 target_link_libraries(${PROJECT_NAME} ${MYSQLCLIENT_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY})
+
+add_subdirectory(tests)

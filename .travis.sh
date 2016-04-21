@@ -25,4 +25,5 @@ else
     cd build
     cmake ..
     make
+    make test
 fi
