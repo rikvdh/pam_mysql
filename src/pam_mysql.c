@@ -1168,7 +1168,7 @@ static pam_mysql_err_t pam_mysql_stream_open(pam_mysql_stream_t *stream,
 #endif
 
 				default:
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "unknown error while opening %s", file);
+					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "unknown error while opening %s (%d)", file, errno);
 					break;
 			}
 		}

@@ -78,4 +78,6 @@ set(CFILES src/pam_mysql.c)
 add_library(${PROJECT_NAME} SHARED ${CFILES})
 target_link_libraries(${PROJECT_NAME} ${MYSQLCLIENT_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY})
 
+install(TARGETS ${PROJECT_NAME} DESTINATION /lib/security)
+
 add_subdirectory(tests)
