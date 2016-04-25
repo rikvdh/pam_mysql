@@ -30,6 +30,7 @@ add_library(Unity STATIC Unity/src/unity.c Unity/extras/fixture/src/unity_fixtur
 
 foreach(test ${TESTS})
 	add_executable(${test} ${test}.c)
+	set_source_files_properties(${test}.c PROPERTIES COMPILE_FLAGS -Wno-redundant-decls)
 	add_dependencies(${test} ${PROJECT_NAME} Unity libpam_stubs)
 	target_link_libraries(${test} ${PROJECT_NAME} Unity crypt ${binary_dir}/libpam_stubs.so)
 	add_test(NAME "${test}" COMMAND "${CMAKE_CURRENT_BINARY_DIR}/${test}")

@@ -42,10 +42,37 @@ TEST(PamMysqlAuthenticate, set_data_fail)
 	TEST_ASSERT_EQUAL(1, pamstub_get_pam_set_data_calls());
 }
 
+TEST(PamMysqlAuthenticate, happy_flow)
+{
+	pam_handle_t *pamh = NULL;
+	int retval;
+
+	pamstub_set_pam_get_data_retval(PAM_NO_MODULE_DATA);
+	pamstub_set_pam_set_data_retval(PAM_SUCCESS);
+	retval = pam_sm_authenticate(pamh, 0, 0, NULL);
+	TEST_ASSERT_EQUAL(PAM_SERVICE_ERR, retval);
+	TEST_ASSERT_EQUAL(1, pamstub_get_pam_get_data_calls());
+	TEST_ASSERT_EQUAL(1, pamstub_get_pam_set_data_calls());
+}
+
+TEST(PamMysqlAuthenticate, happy_flow_already_alloc)
+{
+	pam_handle_t *pamh = NULL;
+	int retval;
+
+	pamstub_set_pam_get_data_retval(PAM_SUCCESS);
+	retval = pam_sm_authenticate(pamh, 0, 0, NULL);
+	TEST_ASSERT_EQUAL(PAM_SERVICE_ERR, retval);
+	TEST_ASSERT_EQUAL(1, pamstub_get_pam_get_data_calls());
+	TEST_ASSERT_EQUAL(1, pamstub_get_pam_set_data_calls());
+}
+
 static void RunAllTests(void)
 {
 	RUN_TEST_CASE(PamMysqlAuthenticate, invalid_getdatareturn);
 	RUN_TEST_CASE(PamMysqlAuthenticate, set_data_fail);
+	RUN_TEST_CASE(PamMysqlAuthenticate, happy_flow);
+	RUN_TEST_CASE(PamMysqlAuthenticate, happy_flow_already_alloc);
 }
 
 int main(int argc, const char * argv[])
