@@ -6,6 +6,7 @@ message(STATUS "testing enabled")
 
 set(TESTS
 	authenticate
+	authenticate_args
 )
 
 include(ExternalProject)

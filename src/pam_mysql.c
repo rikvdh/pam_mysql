@@ -544,7 +544,7 @@ static char *pam_mysql_md5_data(const unsigned char *d, size_t sz, char *md)
 		}
 	}
 
-	MD5(d, (unsigned long)sz, buf);
+	MD5(d, sz, buf);
 
 	for (i = 0, j = 0; i < 16; i++, j += 2) {
 		md[j + 0] = "0123456789abcdef"[(int)(buf[i] >> 4)];
@@ -568,7 +568,7 @@ static char *pam_mysql_sha1_data(const unsigned char *d, size_t sz, char *md)
 		}
 	}
 
-	SHA1(d, (unsigned long)sz, buf);
+	SHA1(d, sz, buf);
 
 	for (i = 0, j = 0; i < 20; i++, j += 2) {
 		md[j + 0] = "0123456789abcdef"[(int)(buf[i] >> 4)];
@@ -625,8 +625,9 @@ static int d7_password_get_count_log2(char *setting)
 	return -1;
 }
 
-static char * _password_base64_encode(unsigned char *input, int count, char *output) {
-	int i = 0, off = 0;
+static char * _password_base64_encode(unsigned char *input, size_t count, char *output) {
+	size_t i = 0;
+	int off = 0;
 	char *itoa64 = _password_itoa64();
 	unsigned long value;
 
@@ -656,9 +657,9 @@ static char * _password_base64_encode(unsigned char *input, int count, char *out
 }
 
 /* Strings may be binary and contain \0, so we can't use strlen */
-static char *d7_hash(int use_md5, char *string1, int len1, char *string2, int len2)
+static char *d7_hash(int use_md5, char *string1, size_t len1, char *string2, size_t len2)
 {
-	int len = len1 + len2;
+	size_t len = len1 + len2;
 	char *combined = xcalloc(len, sizeof(char));
 	char *output = NULL;
 
@@ -679,9 +680,9 @@ static char *d7_hash(int use_md5, char *string1, int len1, char *string2, int le
 	memcpy(combined + len1, string2, len2);
 
 	if (use_md5)
-		MD5((unsigned char *)combined, (unsigned long)len, (unsigned char *)output);
+		MD5((unsigned char *)combined, len, (unsigned char *)output);
 	else
-		SHA512((unsigned char *)combined, (unsigned long)len, (unsigned char *)output);
+		SHA512((unsigned char *)combined, len, (unsigned char *)output);
 
 	xfree(combined);
 	return output;
@@ -692,7 +693,7 @@ static char * d7_password_crypt(int use_md5, char *password, char *setting) {
 	char salt[9], *old, *new, *final;
 	int count, count_log2 = d7_password_get_count_log2(setting);
 	size_t expected;
-	int len;
+	size_t len;
 
 	// Hashes may be imported from elsewhere, so we allow != DRUPAL_HASH_COUNT
 	if (count_log2 < DRUPAL_MIN_HASH_COUNT || count_log2 > DRUPAL_MAX_HASH_COUNT) {
