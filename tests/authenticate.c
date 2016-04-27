@@ -82,7 +82,7 @@ TEST(PamMysqlAuthenticate, happy_flow_already_alloc)
 
 	pamstub_set_pam_get_data_retval(PAM_SUCCESS);
 	pamstub_set_pam_get_data_callback(happy_flow_get_data_a_cb);
-	happy_flow_data_a = malloc(1024);
+	happy_flow_data_a = calloc(1024, sizeof(char));
 	retval = pam_sm_authenticate(pamh, 0, 0, NULL);
 	free(happy_flow_data_a);
 	TEST_ASSERT_EQUAL(PAM_USER_UNKNOWN, retval);

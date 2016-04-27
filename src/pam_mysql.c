@@ -387,11 +387,9 @@ static size_t strnncpy(char *dest, size_t dest_size, const char *src, size_t src
 static void *xcalloc(size_t nmemb, size_t size)
 {
 	void *retval;
-	double v = ((double)size) * (int)(nmemb & (((size_t)-1) >> 1));
-
-	if (v != nmemb * size || !nmemb || !size) {
+	size_t total = nmemb * size;
+	if (!total)
 		return NULL;
-	}
 
 	retval = calloc(nmemb, size);
 
@@ -405,9 +403,8 @@ static void *xrealloc(void *ptr, size_t nmemb, size_t size)
 	void *retval;
 	size_t total = nmemb * size;
 
-	if (((double)size) * (int)(nmemb & (((size_t)-1) >> 1)) != total) {
+	if (!total)
 		return NULL;
-	}
 
 	retval = realloc(ptr, total);
 
@@ -421,9 +418,8 @@ static char *xstrdup(const char *ptr)
 	size_t len = strlen(ptr) + sizeof(char);
 	char *retval = xcalloc(sizeof(char), len);
 
-	if (retval == NULL) {
+	if (retval == NULL)
 		return NULL;
-	}
 
 	memcpy(retval, ptr, len);
 
@@ -434,9 +430,8 @@ static char *xstrdup(const char *ptr)
 /* {{{ xfree */
 static void xfree(void *ptr)
 {
-	if (ptr != NULL) {
+	if (ptr != NULL)
 		free(ptr);
-	}
 }
 /* }}} */
 
@@ -538,7 +533,7 @@ static void *memcspn(void *buf, size_t buf_len, const unsigned char *delims,
 
 /* {{{ pam_mysql_md5_data
  */
-static char *pam_mysql_md5_data(const unsigned char *d, unsigned int sz, char *md)
+static char *pam_mysql_md5_data(const unsigned char *d, size_t sz, char *md)
 {
 	size_t i, j;
 	unsigned char buf[16];
@@ -562,7 +557,7 @@ static char *pam_mysql_md5_data(const unsigned char *d, unsigned int sz, char *m
 /* }}} */
 
 /* {{{ pam_mysql_sha1_data */
-static char *pam_mysql_sha1_data(const unsigned char *d, unsigned int sz, char *md)
+static char *pam_mysql_sha1_data(const unsigned char *d, size_t sz, char *md)
 {
 	size_t i, j;
 	unsigned char buf[20];
@@ -755,7 +750,7 @@ static char * d7_password_crypt(int use_md5, char *password, char *setting) {
 	return final;
 }
 
-static int pam_mysql_drupal7_data(const unsigned char *pwd, unsigned int sz, char *md, char *db_pwd)
+static int pam_mysql_drupal7_data(const unsigned char *pwd, size_t sz, char *md, char *db_pwd)
 {
 	char *stored_hash = db_pwd, *pwd_ptr = (char *) pwd;
 	char *hashed = NULL;
@@ -2221,8 +2216,6 @@ static void pam_mysql_cleanup_hdlr(pam_handle_t *pamh, void *voiddata, int statu
 */
 pam_mysql_err_t pam_mysql_retrieve_ctx(pam_mysql_ctx_t **pretval, pam_handle_t *pamh)
 {
-	pam_mysql_err_t err;
-
 	switch (pam_get_data(pamh, PROJECT_NAME, (const void**)pretval)) {
 		case PAM_NO_MODULE_DATA:
 			*pretval = NULL;
@@ -2808,7 +2801,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 				/* MD5 hash (not MD5 crypt()) */
 				case 3: {
 					char buf[33];
-					pam_mysql_md5_data((unsigned char*)passwd, strlen(passwd),
+					pam_mysql_md5_data((const unsigned char *)passwd, strlen(passwd),
 							buf);
 					vresult = strcmp(row[0], buf);
 					{
@@ -2819,7 +2812,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 
 				case 4: {
 					char buf[41];
-					pam_mysql_sha1_data((unsigned char*)passwd, strlen(passwd),
+					pam_mysql_sha1_data((const unsigned char *)passwd, strlen(passwd),
 							buf);
 					vresult = strcmp(row[0], buf);
 					{
@@ -2831,7 +2824,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 				case 5: {
 					char buf[128];
 					memset(buf, 0, 128);
-					pam_mysql_drupal7_data((unsigned char*)passwd, strlen(passwd),
+					pam_mysql_drupal7_data((const unsigned char *)passwd, strlen(passwd),
 							buf, row[0]);
 					vresult = strcmp(row[0], buf);
 					{
@@ -2846,15 +2839,12 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 				/* Joomla 1.5 like password */
 					char buf[33];
 					buf[32]=0;
-
 					char *salt = row[0];
-					char *hash = strsep(&salt,":");
-
-					int len = strlen(passwd)+strlen(salt);
-
+					char *hash = strsep(&salt, ":");
+					size_t len = strlen(passwd) + strlen(salt);
 					char *tmp;
 
-					if (NULL == (tmp = xcalloc(len+1, sizeof(char)))) {
+					if (NULL == (tmp = xcalloc(len + 1, sizeof(char)))) {
 						syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 						err = PAM_MYSQL_ERR_ALLOC;
 						goto out;
@@ -2863,7 +2853,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 					strcat(tmp,passwd);
 					strcat(tmp,salt);
 
-					pam_mysql_md5_data((unsigned char*)tmp, len, buf);
+					pam_mysql_md5_data((const unsigned char *)tmp, len, buf);
 
 					vresult = strcmp(hash, buf);
 					{
@@ -3034,7 +3024,7 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 					err = PAM_MYSQL_ERR_ALLOC;
 					goto out;
 				}
-				pam_mysql_md5_data((unsigned char*)new_passwd,
+				pam_mysql_md5_data((const unsigned char *)new_passwd,
 						strlen(new_passwd), encrypted_passwd);
 				break;
 
@@ -3044,7 +3034,7 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 					err = PAM_MYSQL_ERR_ALLOC;
 					goto out;
 				}
-				pam_mysql_sha1_data((unsigned char*)new_passwd,
+				pam_mysql_sha1_data((const unsigned char *)new_passwd,
 						strlen(new_passwd), encrypted_passwd);
 				break;
 
@@ -3056,11 +3046,10 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 					goto out;
 				}
 
-				int len=strlen(new_passwd)+32;
-
+				size_t len = strlen(new_passwd) + 32;
 				char *tmp;
 
-				if (NULL == (tmp = xcalloc(len+1, sizeof(char)))) {
+				if (NULL == (tmp = xcalloc(len + 1, sizeof(char)))) {
 					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					err = PAM_MYSQL_ERR_ALLOC;
 					goto out;
@@ -3071,14 +3060,13 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 
 				srandom(time(NULL));
 
-				int i;
-				for(i=0;i<32; i++)
-					salt[i]=(char)((random()/(double)RAND_MAX * 93.0) +33.0);
+				for (int i = 0; i < 32; i++)
+					salt[i] = (char)((random() / (double)RAND_MAX * 93.0) +33.0);
 
 				strcat(tmp,new_passwd);
 				strcat(tmp,salt);
 
-				pam_mysql_md5_data((unsigned char*)tmp, len, encrypted_passwd);
+				pam_mysql_md5_data((const unsigned char *)tmp, len, encrypted_passwd);
 
 				xfree(tmp);
 
@@ -3407,9 +3395,8 @@ static pam_mysql_err_t pam_mysql_converse(pam_mysql_ctx_t *ctx, char ***pretval,
 
 out:
 	if (resps != NULL) {
-		size_t i;
-		for (i = 0; i < nargs; i++) {
-			xfree_overwrite(resps[i].resp);
+		for (size_t j = 0; j < nargs; j++) {
+			xfree_overwrite(resps[j].resp);
 		}
 		xfree(resps);
 	}
