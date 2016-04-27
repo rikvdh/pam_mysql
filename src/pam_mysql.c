@@ -341,7 +341,6 @@ static void pam_mysql_cleanup_hdlr(pam_handle_t *pamh, void * voiddata, int stat
 /* {{{ pam_mysql methods */
 static pam_mysql_err_t pam_mysql_retrieve_ctx(pam_mysql_ctx_t **pretval, pam_handle_t *pamh);
 
-static pam_mysql_err_t pam_mysql_init_ctx(pam_mysql_ctx_t *);
 static void pam_mysql_destroy_ctx(pam_mysql_ctx_t *);
 static void pam_mysql_saltify(pam_mysql_ctx_t *, char *salt, const char *salter );
 static pam_mysql_err_t pam_mysql_parse_args(pam_mysql_ctx_t *, int argc, const char **argv);
@@ -2094,7 +2093,7 @@ static pam_mysql_err_t pam_mysql_get_host_info(pam_mysql_ctx_t *ctx,
 
 /* {{{ pam_mysql_init_ctx()
  */
-static pam_mysql_err_t pam_mysql_init_ctx(pam_mysql_ctx_t *ctx)
+static void pam_mysql_init_ctx(pam_mysql_ctx_t *ctx)
 {
 	ctx->mysql_hdl = NULL;
 	ctx->host = NULL;
@@ -2124,8 +2123,6 @@ static pam_mysql_err_t pam_mysql_init_ctx(pam_mysql_ctx_t *ctx)
 	ctx->logtimecolumn = NULL;
 	ctx->config_file = NULL;
 	ctx->my_host_info = NULL;
-
-	return PAM_MYSQL_ERR_SUCCESS;
 }
 /* }}} */
 
@@ -2253,13 +2250,7 @@ pam_mysql_err_t pam_mysql_retrieve_ctx(pam_mysql_ctx_t **pretval, pam_handle_t *
 			return PAM_MYSQL_ERR_UNKNOWN;
 		}
 
-		if ((err = pam_mysql_init_ctx(*pretval))) {
-			syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "cannot initialize context at " __FILE__ ":%d", __LINE__);
-			pam_mysql_destroy_ctx(*pretval);
-			xfree(*pretval);
-			*pretval = NULL;
-			return err;
-		}
+		pam_mysql_init_ctx(*pretval);
 	}
 
 	return PAM_MYSQL_ERR_SUCCESS;
