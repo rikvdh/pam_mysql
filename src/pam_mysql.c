@@ -41,37 +41,28 @@
 #define PAM_SM_SESSION
 #define PAM_SM_PASSWORD
 
-/* {{{ includes */
 #include <config.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
 #endif
-
 #ifdef HAVE_STDARG_H
 #include <stdarg.h>
 #endif
-
 #ifdef HAVE_ALLOCA_H
 #include <alloca.h>
 #endif
-
 #ifdef HAVE_STRING_H
 #include <string.h>
 #endif
-
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
-
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
@@ -150,9 +141,7 @@
 #endif
 /* }}} */
 
-#ifndef LOG_AUTHPRIV
-#define LOG_AUTHPRIV LOG_AUTH
-#endif
+#include "stdlib_wrapper.h"
 
 #ifdef LINUX_PAM_CONST_BUG
 #define PAM_AUTHTOK_RECOVERY_ERR PAM_AUTHTOK_RECOVER_ERR
@@ -360,92 +349,7 @@ static pam_mysql_err_t pam_mysql_get_host_info(pam_mysql_ctx_t *,
 		const char **pretval);
 /* }}} */
 
-static size_t strnncpy(char *dest, size_t dest_size, const char *src, size_t src_len);
-static void *xcalloc(size_t nmemb, size_t size);
-static char *xstrdup(const char *ptr);
-static void xfree(void *ptr);
-static void xfree_overwrite(char *ptr);
 /* }}} */
-/* }}} */
-
-/* {{{ strnncpy */
-static size_t strnncpy(char *dest, size_t dest_size, const char *src, size_t src_len)
-{
-	size_t cpy_len;
-	dest_size--;
-	cpy_len = (dest_size < src_len ? dest_size: src_len);
-
-	memcpy(dest, src, cpy_len);
-
-	dest[cpy_len] = '\0';
-
-	return cpy_len;
-}
-/* }}} */
-
-/* {{{ xcalloc */
-static void *xcalloc(size_t nmemb, size_t size)
-{
-	void *retval;
-	size_t total = nmemb * size;
-	if (!total)
-		return NULL;
-
-	retval = calloc(nmemb, size);
-
-	return retval;
-}
-/* }}} */
-
-/* {{{ xrealloc */
-static void *xrealloc(void *ptr, size_t nmemb, size_t size)
-{
-	void *retval;
-	size_t total = nmemb * size;
-
-	if (!total)
-		return NULL;
-
-	retval = realloc(ptr, total);
-
-	return retval;
-}
-/* }}} */
-
-/* {{{ xstrdup */
-static char *xstrdup(const char *ptr)
-{
-	size_t len = strlen(ptr) + sizeof(char);
-	char *retval = xcalloc(sizeof(char), len);
-
-	if (retval == NULL)
-		return NULL;
-
-	memcpy(retval, ptr, len);
-
-	return retval;
-}
-/* }}} */
-
-/* {{{ xfree */
-static void xfree(void *ptr)
-{
-	if (ptr != NULL)
-		free(ptr);
-}
-/* }}} */
-
-/* {{{ xfree_overwrite */
-static void xfree_overwrite(char *ptr)
-{
-	if (ptr != NULL) {
-		char *p;
-		for (p = ptr; *p != '\0'; p++) {
-			*p = '\0';
-		}
-		free(ptr);
-	}
-}
 /* }}} */
 
 /* {{{ memspn */
@@ -664,7 +568,7 @@ static char *d7_hash(int use_md5, char *string1, size_t len1, char *string2, siz
 	char *output = NULL;
 
 	if (!combined) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "hash: Failed to allocate memory for combined value.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "hash: Failed to allocate memory for combined value.");
 		return NULL;
 	}
 
@@ -672,7 +576,7 @@ static char *d7_hash(int use_md5, char *string1, size_t len1, char *string2, siz
 	
 	if (!output) {
 		xfree(combined);
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "hash: Failed to allocate memory for output value.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "hash: Failed to allocate memory for output value.");
 		return NULL;
 	}
 
@@ -697,14 +601,14 @@ static char * d7_password_crypt(int use_md5, char *password, char *setting) {
 
 	// Hashes may be imported from elsewhere, so we allow != DRUPAL_HASH_COUNT
 	if (count_log2 < DRUPAL_MIN_HASH_COUNT || count_log2 > DRUPAL_MAX_HASH_COUNT) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "_password_crypt: count_log2 outside of range.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "_password_crypt: count_log2 outside of range.");
 		return NULL;
 	}
 
 	strncpy(salt, &setting[4], 8);
 	salt[8] = '\0';
 	if (strlen(salt) != 8) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "_password_crypt: Salt length is not 8.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "_password_crypt: Salt length is not 8.");
 		return NULL;
 	}
 
@@ -734,7 +638,7 @@ static char * d7_password_crypt(int use_md5, char *password, char *setting) {
 	expected = 12 + ((8 * len + 5) / 6);
 
 	if (strlen(new) != expected) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "_password_crypt: Hash length not as expected.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "_password_crypt: Hash length not as expected.");
 		xfree(new);
 		return NULL;
 	}
@@ -742,7 +646,7 @@ static char * d7_password_crypt(int use_md5, char *password, char *setting) {
 	final = xcalloc(DRUPAL_HASH_LENGTH + 1, sizeof(char));
 	if (!final) {
 		xfree(new);
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "_password_crypt: Failed to allocate memory for output value.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "_password_crypt: Failed to allocate memory for output value.");
 		return NULL;
 	}
 
@@ -806,12 +710,14 @@ static pam_mysql_err_t pam_mysql_string_opt_getter(void *val, const char **pretv
 /* {{{ pam_mysql_string_opt_setter */
 static pam_mysql_err_t pam_mysql_string_opt_setter(void *val, const char *newval_str)
 {
-	if (*(char **)val != NULL) {
-		xfree(*(char **)val);
+	char **strval = (char **)val;
+
+	if (*strval != NULL) {
+		xfree(*strval);
 	}
 
-	if (NULL == (*(char **)val = xstrdup(newval_str))) {
-		syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+	if (NULL == (*strval = xstrdup(newval_str))) {
+		logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 		return PAM_MYSQL_ERR_ALLOC;
 	}
 
@@ -1016,7 +922,7 @@ static pam_mysql_err_t pam_mysql_str_reserve(pam_mysql_str_t *str, size_t len)
 	{
 		len_req = str->len + len;
 		if (len_req < str->len) {
-			syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "integer overflow at " __FILE__ ":%d", __LINE__);
+			logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "integer overflow at " __FILE__ ":%d", __LINE__);
 			return PAM_MYSQL_ERR_INVAL;
 		}
 
@@ -1031,7 +937,7 @@ static pam_mysql_err_t pam_mysql_str_reserve(pam_mysql_str_t *str, size_t len)
 		do {
 			new_size *= 2;
 			if (cv > new_size) {
-				syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+				logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 				return PAM_MYSQL_ERR_ALLOC;		
 			}
 			cv = new_size;
@@ -1039,7 +945,7 @@ static pam_mysql_err_t pam_mysql_str_reserve(pam_mysql_str_t *str, size_t len)
 
 		if (str->mangle) {
 			if (NULL == (new_buf = xcalloc(new_size, sizeof(char)))) {
-				syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+				logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 				return PAM_MYSQL_ERR_ALLOC;		
 			}
 
@@ -1051,12 +957,12 @@ static pam_mysql_err_t pam_mysql_str_reserve(pam_mysql_str_t *str, size_t len)
 		} else {
 			if (str->alloc_size == 0) {
 				if (NULL == (new_buf = xcalloc(new_size, sizeof(char)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					return PAM_MYSQL_ERR_ALLOC;		
 				}
 			} else {
 				if (NULL == (new_buf = xrealloc(str->p, new_size, sizeof(char)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					return PAM_MYSQL_ERR_ALLOC;		
 				}
 			}
@@ -1127,43 +1033,43 @@ static pam_mysql_err_t pam_mysql_stream_open(pam_mysql_stream_t *stream,
 			switch (errno) {
 				case EACCES:
 				case EPERM:
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "access to %s not permitted", file);
+					logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "access to %s not permitted", file);
 					break;
 
 				case EISDIR:
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s is directory", file);
+					logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s is directory", file);
 					break;
 
 #ifdef HAVE_ELOOP
 				case ELOOP:
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s refers to an inresolvable symbolic link", file);
+					logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s refers to an inresolvable symbolic link", file);
 					break;
 #endif
 
 				case EMFILE:
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "too many opened files");
+					logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "too many opened files");
 					break;
 
 				case ENFILE:
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "too many opened files within this system");
+					logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "too many opened files within this system");
 					break;
 
 				case ENOENT:
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s does not exist", file);
+					logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s does not exist", file);
 					break;
 
 				case ENOMEM:
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "kernel resource exhausted");
+					logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "kernel resource exhausted");
 					break;
 
 #ifdef HAVE_EOVERFLOW
 				case EOVERFLOW:
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s is too big", file);
+					logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s is too big", file);
 					break;
 #endif
 
 				default:
-					syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "unknown error while opening %s (%d)", file, errno);
+					logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "unknown error while opening %s (%d)", file, errno);
 					break;
 			}
 		}
@@ -1201,7 +1107,7 @@ static pam_mysql_err_t pam_mysql_stream_getc(pam_mysql_stream_t *stream,
 			}
 
 			if ((new_buf_len = read(stream->fd, new_buf, sizeof(stream->buf[0]))) == -1) {
-				syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "I/O error");
+				logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "I/O error");
 				return PAM_MYSQL_ERR_IO;
 			}
 
@@ -1280,7 +1186,7 @@ static pam_mysql_err_t pam_mysql_stream_skip_spn(pam_mysql_stream_t *stream,
 		ssize_t new_buf_len;
 
 		if ((new_buf_len = read(stream->fd, stream->buf_start, sizeof(stream->buf[0]))) == -1) {
-			syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "I/O error");
+			logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "I/O error");
 			return PAM_MYSQL_ERR_IO;
 		}
 
@@ -1375,7 +1281,7 @@ static pam_mysql_err_t pam_mysql_stream_read_cspn(pam_mysql_stream_t *stream,
 		block = (unsigned char*)append_to->p + append_to->len;
 
 		if ((len = read(stream->fd, block, sizeof(stream->buf[0]))) == -1) {
-			syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "I/O error");
+			logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "I/O error");
 			return PAM_MYSQL_ERR_IO;
 		}
 
@@ -1674,7 +1580,7 @@ static pam_mysql_err_t pam_mysql_config_parser_parse(
 
 							if (NULL == (new_buf = xrealloc(name,
 									scanner.image.len + 1, sizeof(char)))) {
-								syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+								logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 								err = PAM_MYSQL_ERR_ALLOC;
 								goto out;
 							}
@@ -1743,7 +1649,7 @@ static pam_mysql_err_t pam_mysql_config_parser_parse(
 
 							if (NULL == (new_buf = xrealloc(value,
 									scanner.image.len + 1, sizeof(char)))) {
-								syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+								logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 								err = PAM_MYSQL_ERR_ALLOC;
 								goto out;
 							}
@@ -1808,7 +1714,7 @@ static pam_mysql_err_t pam_mysql_config_parser_parse(
 out:
 	if (err == PAM_MYSQL_ERR_SYNTAX) {
 		if (parser->ctx->verbose) {
-			syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "unexpected token %s on line %d\n",
+			logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "unexpected token %s on line %d\n",
 					pam_mysql_config_token_name[scanner.token],
 					line_num);
 		}
@@ -1890,7 +1796,7 @@ static pam_mysql_err_t pam_mysql_handle_entry(
 		if (hdlr->ctx->verbose) {
 			char buf[1024];
 			strnncpy(buf, sizeof(buf), name, name_len);
-			syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "unknown option %s on line %d", buf, line_num);
+			logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "unknown option %s on line %d", buf, line_num);
 		}
 
 		return PAM_MYSQL_ERR_SUCCESS;
@@ -1900,7 +1806,7 @@ static pam_mysql_err_t pam_mysql_handle_entry(
 	if (!err && hdlr->ctx->verbose) {
 		char buf[1024];
 		strnncpy(buf, sizeof(buf), name, name_len);
-		syslog(LOG_AUTHPRIV | LOG_INFO, PAM_MYSQL_LOG_PREFIX "option %s is set to \"%s\"", buf, value);
+		logmsg(LOG_INFO, PAM_MYSQL_LOG_PREFIX "option %s is set to \"%s\"", buf, value);
 	}
 
 	return err;
@@ -1965,7 +1871,7 @@ static pam_mysql_err_t pam_mysql_get_host_info(pam_mysql_ctx_t *ctx,
 		switch (ainfo->ai_family) {
 			case AF_INET:
 				if (NULL == (retval = xcalloc(INET_ADDRSTRLEN, sizeof(char)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					freeaddrinfo(ainfo);
 					return PAM_MYSQL_ERR_ALLOC;
 				}
@@ -1981,7 +1887,7 @@ static pam_mysql_err_t pam_mysql_get_host_info(pam_mysql_ctx_t *ctx,
 #ifdef HAVE_IPV6
 			case AF_INET6:
 				if (NULL == (retval = xcalloc(INET6_ADDRSTRLEN,sizeof(char)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					freeaddrinfo(ainfo);
 					return PAM_MYSQL_ERR_ALLOC;
 				}
@@ -2011,7 +1917,7 @@ static pam_mysql_err_t pam_mysql_get_host_info(pam_mysql_ctx_t *ctx,
 
 		for (;;) {
 			if (NULL == (tmp = xrealloc(hent, hent_size, sizeof(char)))) {
-				syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+				logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 
 				if (hent != NULL) {
 					xfree(hent);
@@ -2034,7 +1940,7 @@ static pam_mysql_err_t pam_mysql_get_host_info(pam_mysql_ctx_t *ctx,
 			}
 
 			if (hent_size + 32 < hent_size) {
-				syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+				logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 				xfree(hent);
 				return PAM_MYSQL_ERR_ALLOC;
 			}
@@ -2045,7 +1951,7 @@ static pam_mysql_err_t pam_mysql_get_host_info(pam_mysql_ctx_t *ctx,
 		switch (hent->h_addrtype) {
 			case AF_INET:
 				if (NULL == (retval = xcalloc(INET_ADDRSTRLEN, sizeof(char)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					xfree(hent);	
 					return PAM_MYSQL_ERR_ALLOC;
 				}
@@ -2060,7 +1966,7 @@ static pam_mysql_err_t pam_mysql_get_host_info(pam_mysql_ctx_t *ctx,
 #ifdef HAVE_IPV6
 			case AF_INET6:
 				if (NULL == (retval = xcalloc(INET6_ADDRSTRLEN,sizeof(char)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					xfree(hent);
 					return PAM_MYSQL_ERR_ALLOC;
 				}
@@ -2106,7 +2012,11 @@ static void pam_mysql_init_ctx(pam_mysql_ctx_t *ctx)
 	ctx->use_323_passwd = 0;
 	ctx->md5 = -1;
 	ctx->sqllog = 0;
+#ifdef DEBUG_BUILD
+	ctx->verbose = 1;
+#else
 	ctx->verbose = 0;
+#endif
 	ctx->use_first_pass = 0;
 	ctx->try_first_pass = 1;
 	ctx->disconnect_every_op = 0;
@@ -2126,7 +2036,7 @@ static void pam_mysql_init_ctx(pam_mysql_ctx_t *ctx)
 static void pam_mysql_destroy_ctx(pam_mysql_ctx_t *ctx)
 {
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_destroy_ctx() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_destroy_ctx() called.");
 	}
 
 	pam_mysql_close_db(ctx);
@@ -2195,7 +2105,7 @@ static void pam_mysql_release_ctx(pam_mysql_ctx_t *ctx)
 {
 	if (ctx != NULL) {
 		if (ctx->verbose) {
-			syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_release_ctx() called.");
+			logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_release_ctx() called.");
 		}
 
 		pam_mysql_destroy_ctx(ctx);
@@ -2232,13 +2142,13 @@ pam_mysql_err_t pam_mysql_retrieve_ctx(pam_mysql_ctx_t **pretval, pam_handle_t *
 	if (*pretval == NULL) {
 		/* allocate global data space */
 		if (NULL == (*pretval = (pam_mysql_ctx_t*)xcalloc(1, sizeof(pam_mysql_ctx_t)))) {
-			syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+			logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 			return PAM_MYSQL_ERR_ALLOC;
 		}
 		
 		/* give the data back to PAM for management */
 		if (pam_set_data(pamh, PROJECT_NAME, (void*)*pretval, pam_mysql_cleanup_hdlr)) {
-			syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "failed to set context to PAM at " __FILE__ ":%d", __LINE__);
+			logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "failed to set context to PAM at " __FILE__ ":%d", __LINE__);
 			xfree(*pretval);
 			*pretval = NULL;
 			return PAM_MYSQL_ERR_UNKNOWN;
@@ -2261,7 +2171,7 @@ pam_mysql_err_t pam_mysql_set_option(pam_mysql_ctx_t *ctx, const char *name, siz
 		if (ctx->verbose) {
 			char buf[1024];
 			strnncpy(buf, sizeof(buf), name, name_len);
-			syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "unknown option: %s", buf);
+			logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "unknown option: %s", buf);
 		}
 
 		return PAM_MYSQL_ERR_NO_ENTRY;
@@ -2281,7 +2191,7 @@ pam_mysql_err_t pam_mysql_get_option(pam_mysql_ctx_t *ctx, const char **pretval,
 		if (ctx->verbose) {
 			char buf[1024];
 			strnncpy(buf, sizeof(buf), name, name_len);
-			syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "unknown option: %s", buf);
+			logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "unknown option: %s", buf);
 		}
 
 		return PAM_MYSQL_ERR_NO_ENTRY;
@@ -2325,7 +2235,7 @@ pam_mysql_err_t pam_mysql_parse_args(pam_mysql_ctx_t *ctx, int argc, const char 
 		if (ctx->verbose) {
 			char buf[1024];
 			strnncpy(buf, sizeof(buf), name, name_len);
-			syslog(LOG_AUTHPRIV | LOG_INFO, PAM_MYSQL_LOG_PREFIX "option %s is set to \"%s\"", buf, value);
+			logmsg(LOG_INFO, PAM_MYSQL_LOG_PREFIX "option %s is set to \"%s\"", buf, value);
 		}
 	}	
 
@@ -2383,7 +2293,7 @@ static pam_mysql_err_t pam_mysql_open_db(pam_mysql_ctx_t *ctx)
 	int port = 0;
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_open_db() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_open_db() called.");
 	}
 
 	if (ctx->mysql_hdl != NULL) {
@@ -2391,17 +2301,17 @@ static pam_mysql_err_t pam_mysql_open_db(pam_mysql_ctx_t *ctx)
 	}
 
 	if (NULL == (ctx->mysql_hdl = xcalloc(1, sizeof(MYSQL)))) {
-		syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+		logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 		return PAM_MYSQL_ERR_ALLOC;
 	}
 
 	if (ctx->user == NULL) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "required option \"user\" is not set");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "required option \"user\" is not set");
 		return PAM_MYSQL_ERR_INVAL;
 	}
 
 	if (ctx->db == NULL) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "required option \"db\" is not set");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "required option \"db\" is not set");
 		return PAM_MYSQL_ERR_INVAL;
 	}
 
@@ -2416,7 +2326,7 @@ static pam_mysql_err_t pam_mysql_open_db(pam_mysql_ctx_t *ctx)
 				size_t len = (size_t)(p - ctx->host);
 
 				if (NULL == (host = xcalloc(len + 1, sizeof(char)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					return PAM_MYSQL_ERR_ALLOC;
 				}
 				memcpy(host, ctx->host, len);
@@ -2450,11 +2360,11 @@ static pam_mysql_err_t pam_mysql_open_db(pam_mysql_ctx_t *ctx)
 
 out:
 	if (err == PAM_MYSQL_ERR_DB) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "MySQL error (%s)\n", mysql_error(ctx->mysql_hdl));
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "MySQL error (%s)\n", mysql_error(ctx->mysql_hdl));
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_open_db() returning %d.", err);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_open_db() returning %d.", err);
 	}
 
 	if (host != ctx->host) {
@@ -2470,7 +2380,7 @@ out:
 static void pam_mysql_close_db(pam_mysql_ctx_t *ctx)
 {
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_close_db() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_close_db() called.");
 	}
 
 	if (ctx->mysql_hdl == NULL) {
@@ -2493,11 +2403,11 @@ static pam_mysql_err_t pam_mysql_quick_escape(pam_mysql_ctx_t *ctx, pam_mysql_st
 	size_t len;
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_quick_escape() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_quick_escape() called.");
 	}
 
 	if (val_len >= (((size_t)-1)>>1) || pam_mysql_str_reserve(append_to, val_len * 2)) {
-		syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+		logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 		return PAM_MYSQL_ERR_ALLOC;
 	}
 
@@ -2520,7 +2430,7 @@ static pam_mysql_err_t pam_mysql_format_string(pam_mysql_ctx_t *ctx,
 	va_list ap;
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_format_string() called");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_format_string() called");
 	}
 
 	va_start(ap, mangle);
@@ -2701,7 +2611,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 	int vresult;
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_check_passwd() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_check_passwd() called.");
 	}
 
 	/* To avoid putting a plain password in the MySQL log file and on
@@ -2724,7 +2634,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s", query.p);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s", query.p);
 	}
 
 	if (mysql_real_query(ctx->mysql_hdl, query.p, query.len)) {
@@ -2739,7 +2649,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 
 	switch (mysql_num_rows(result)) {
 		case 0:
-			syslog(LOG_AUTHPRIV | LOG_ERR, "%s", PAM_MYSQL_LOG_PREFIX "SELECT returned no result.");
+			logmsg(LOG_ERR, "%s", PAM_MYSQL_LOG_PREFIX "SELECT returned no result.");
 			err = PAM_MYSQL_ERR_NO_ENTRY;
 			goto out;
 
@@ -2747,7 +2657,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 			break;
 
 		case 2:
-			syslog(LOG_AUTHPRIV | LOG_ERR, "%s", PAM_MYSQL_LOG_PREFIX "SELECT returned multiple results.");
+			logmsg(LOG_ERR, "%s", PAM_MYSQL_LOG_PREFIX "SELECT returned multiple results.");
 			err = PAM_MYSQL_ERR_UNKNOWN;
 			goto out;
 	}
@@ -2772,7 +2682,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 				case 1: {
 					char *crypted_password = crypt(passwd, row[0]);
 					if (crypted_password == NULL) {
-						syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "something went wrong when invoking crypt() - %s", strerror(errno));
+						logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "something went wrong when invoking crypt() - %s", strerror(errno));
 						vresult = 1;
 					} else {
 						vresult = strcmp(row[0], crypted_password);
@@ -2846,7 +2756,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 					char *tmp;
 
 					if (NULL == (tmp = xcalloc(len + 1, sizeof(char)))) {
-						syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+						logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 						err = PAM_MYSQL_ERR_ALLOC;
 						goto out;
 					}
@@ -2881,7 +2791,7 @@ static pam_mysql_err_t pam_mysql_check_passwd(pam_mysql_ctx_t *ctx,
 
 out:
 	if (err == PAM_MYSQL_ERR_DB) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "MySQL error(%s)", mysql_error(ctx->mysql_hdl));
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "MySQL error(%s)", mysql_error(ctx->mysql_hdl));
 	}
 
 	if (result != NULL) {
@@ -2891,7 +2801,7 @@ out:
 	pam_mysql_str_destroy(&query);
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_check_passwd() returning %i.", err);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_check_passwd() returning %i.", err);
 	}
 
 	return err;
@@ -2909,7 +2819,7 @@ static void pam_mysql_saltify(pam_mysql_ctx_t *ctx, char *salt, const char *salt
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./";
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "saltify called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "saltify called.");
 	}
 
 	if (salter != NULL) {
@@ -2949,7 +2859,7 @@ static void pam_mysql_saltify(pam_mysql_ctx_t *ctx, char *salt, const char *salt
 	*q = '\0';
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_saltify() returning salt = %s.", salt);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_saltify() returning salt = %s.", salt);
 	}
 }
 /* }}} */
@@ -2970,15 +2880,15 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_update_passwd() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_update_passwd() called.");
 	}
 
 	if (user == NULL) {
 		if (ctx->verbose) {
-			syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "user is NULL.");
+			logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "user is NULL.");
 		}
 
-		syslog(LOG_NOTICE, PAM_MYSQL_LOG_PREFIX "unable to change password");
+		logmsg(LOG_NOTICE, PAM_MYSQL_LOG_PREFIX "unable to change password");
 		return PAM_MYSQL_ERR_INVAL;
 	}
 
@@ -2986,7 +2896,7 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 		switch (ctx->crypt_type) {
 			case 0:
 				if (NULL == (encrypted_passwd = xstrdup(new_passwd))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					err = PAM_MYSQL_ERR_ALLOC;
 					goto out;
 				}
@@ -2996,7 +2906,7 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 				char salt[18];
 				pam_mysql_saltify(ctx, salt, new_passwd);
 				if (NULL == (encrypted_passwd = xstrdup(crypt(new_passwd, salt)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					err = PAM_MYSQL_ERR_ALLOC;
 					goto out;
 				}
@@ -3004,7 +2914,7 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 
 			case 2:
 				if (NULL == (encrypted_passwd = xcalloc(41 + 1, sizeof(char)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					err = PAM_MYSQL_ERR_ALLOC;
 					goto out;
 				}
@@ -3021,7 +2931,7 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 
 			case 3:
 				if (NULL == (encrypted_passwd = xcalloc(32 + 1, sizeof(char)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					err = PAM_MYSQL_ERR_ALLOC;
 					goto out;
 				}
@@ -3031,7 +2941,7 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 
 			case 4:
 				if (NULL == (encrypted_passwd = xcalloc(40 + 1, sizeof(char)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					err = PAM_MYSQL_ERR_ALLOC;
 					goto out;
 				}
@@ -3042,7 +2952,7 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 			case 6:
 				{
 				if (NULL == (encrypted_passwd = xcalloc(32 + 1+ 32 +1, sizeof(char)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					err = PAM_MYSQL_ERR_ALLOC;
 					goto out;
 				}
@@ -3051,7 +2961,7 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 				char *tmp;
 
 				if (NULL == (tmp = xcalloc(len + 1, sizeof(char)))) {
-					syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+					logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 					err = PAM_MYSQL_ERR_ALLOC;
 					goto out;
 				}
@@ -3098,7 +3008,7 @@ static pam_mysql_err_t pam_mysql_update_passwd(pam_mysql_ctx_t *ctx, const char 
 
 out:
 	if (err == PAM_MYSQL_ERR_DB) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "MySQL error (%s)", mysql_error(ctx->mysql_hdl));
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "MySQL error (%s)", mysql_error(ctx->mysql_hdl));
 	}
 
 	if (encrypted_passwd != NULL) {
@@ -3112,7 +3022,7 @@ out:
 	pam_mysql_str_destroy(&query);
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_update_passwd() returning %i.", err);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_update_passwd() returning %i.", err);
 	}
 
 	return err;
@@ -3129,7 +3039,7 @@ static pam_mysql_err_t pam_mysql_query_user_stat(pam_mysql_ctx_t *ctx,
 	MYSQL_ROW row;
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_query_user_stat() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_query_user_stat() called.");
 	}
 
 	if ((err = pam_mysql_str_init(&query, 0))) {
@@ -3147,7 +3057,7 @@ static pam_mysql_err_t pam_mysql_query_user_stat(pam_mysql_ctx_t *ctx,
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s", query.p);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s", query.p);
 	}
 
 	if (mysql_real_query(ctx->mysql_hdl, query.p, query.len)) {
@@ -3162,7 +3072,7 @@ static pam_mysql_err_t pam_mysql_query_user_stat(pam_mysql_ctx_t *ctx,
 
 	switch (mysql_num_rows(result)) {
 		case 0:
-			syslog(LOG_AUTHPRIV | LOG_ERR, "%s", PAM_MYSQL_LOG_PREFIX "SELECT returned no result.");
+			logmsg(LOG_ERR, "%s", PAM_MYSQL_LOG_PREFIX "SELECT returned no result.");
 			err = PAM_MYSQL_ERR_NO_ENTRY;
 			goto out;
 
@@ -3170,7 +3080,7 @@ static pam_mysql_err_t pam_mysql_query_user_stat(pam_mysql_ctx_t *ctx,
 			break;
 
 		case 2:
-			syslog(LOG_AUTHPRIV | LOG_ERR, "%s", PAM_MYSQL_LOG_PREFIX "SELECT returned an indetermined result.");
+			logmsg(LOG_ERR, "%s", PAM_MYSQL_LOG_PREFIX "SELECT returned an indetermined result.");
 			err = PAM_MYSQL_ERR_UNKNOWN;
 			goto out;
 	}
@@ -3192,7 +3102,7 @@ static pam_mysql_err_t pam_mysql_query_user_stat(pam_mysql_ctx_t *ctx,
 
 out:
 	if (err == PAM_MYSQL_ERR_DB) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "MySQL error (%s)", mysql_error(ctx->mysql_hdl));
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "MySQL error (%s)", mysql_error(ctx->mysql_hdl));
 	}
 
 	if (result != NULL) {
@@ -3202,7 +3112,7 @@ out:
 	pam_mysql_str_destroy(&query);
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_query_user_stat() returning %i.", err);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_query_user_stat() returning %i.", err);
 	}
 
 	return err;
@@ -3218,7 +3128,7 @@ static pam_mysql_err_t pam_mysql_sql_log(pam_mysql_ctx_t *ctx, const char *msg, 
 	const char *host;
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_sql_log() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_sql_log() called.");
 	}
 
 	if ((err = pam_mysql_str_init(&query, 1))) {
@@ -3235,31 +3145,31 @@ static pam_mysql_err_t pam_mysql_sql_log(pam_mysql_ctx_t *ctx, const char *msg, 
 	}
 
 	if (ctx->logtable == NULL) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, "%s",
+		logmsg(LOG_ERR, "%s",
 				PAM_MYSQL_LOG_PREFIX "sqllog set but logtable not set");
 		return PAM_MYSQL_ERR_INVAL;
 	}
 
 	if (ctx->logmsgcolumn == NULL) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, "%s",
+		logmsg(LOG_ERR, "%s",
 				PAM_MYSQL_LOG_PREFIX "sqllog set but logmsgcolumn not set");
 		return PAM_MYSQL_ERR_INVAL;
 	}
 
 	if (ctx->logusercolumn == NULL) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, "%s",
+		logmsg(LOG_ERR, "%s",
 				PAM_MYSQL_LOG_PREFIX "sqllog set but logusercolumn not set");
 		return PAM_MYSQL_ERR_INVAL;
 	}
 
 	if (ctx->loghostcolumn == NULL) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, "%s",
+		logmsg(LOG_ERR, "%s",
 				PAM_MYSQL_LOG_PREFIX "sqllog set but loghostcolumn not set");
 		return PAM_MYSQL_ERR_INVAL;
 	}
 
 	if (ctx->logtimecolumn == NULL) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, "%s",
+		logmsg(LOG_ERR, "%s",
 				PAM_MYSQL_LOG_PREFIX "sqllog set but logtimecolumn not set");
 		return PAM_MYSQL_ERR_INVAL;
 	}
@@ -3279,7 +3189,7 @@ static pam_mysql_err_t pam_mysql_sql_log(pam_mysql_ctx_t *ctx, const char *msg, 
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s", query.p);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "%s", query.p);
 	}
 
 	if (mysql_real_query(ctx->mysql_hdl, query.p, query.len)) {
@@ -3291,13 +3201,13 @@ static pam_mysql_err_t pam_mysql_sql_log(pam_mysql_ctx_t *ctx, const char *msg, 
 
 out:
 	if (err == PAM_MYSQL_ERR_DB) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "MySQL error (%s)", mysql_error(ctx->mysql_hdl));
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "MySQL error (%s)", mysql_error(ctx->mysql_hdl));
 	}
 
 	pam_mysql_str_destroy(&query);
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_sql_log() returning %d.", err);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_sql_log() returning %d.", err);
 	}
 
 	return err;
@@ -3320,14 +3230,14 @@ static pam_mysql_err_t pam_mysql_converse(pam_mysql_ctx_t *ctx, char ***pretval,
 	char **retval = NULL;
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_converse() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_mysql_converse() called.");
 	}
 
 	va_start(ap, nargs);
 
 	/* obtain conversation interface */
 	if ((perr = pam_get_item(pamh, PAM_CONV, (const void **)&conv))) {
-		syslog(LOG_AUTHPRIV | LOG_ERR,
+		logmsg(LOG_ERR,
 				PAM_MYSQL_LOG_PREFIX "could not obtain coversation interface (reason: %s)", pam_strerror(pamh, perr));
 		err = PAM_MYSQL_ERR_UNKNOWN;
 		goto out;
@@ -3336,7 +3246,7 @@ static pam_mysql_err_t pam_mysql_converse(pam_mysql_ctx_t *ctx, char ***pretval,
 	/* build message array */
 	if (NULL == (msgs = xcalloc(nargs, sizeof(struct pam_message *)))) {
 
-		syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+		logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 		err = PAM_MYSQL_ERR_ALLOC;
 		goto out;
 	}
@@ -3347,7 +3257,7 @@ static pam_mysql_err_t pam_mysql_converse(pam_mysql_ctx_t *ctx, char ***pretval,
 
 	if (NULL == (bulk_msg_buf = xcalloc(nargs, sizeof(struct pam_message)))) {
 
-		syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+		logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 		err = PAM_MYSQL_ERR_ALLOC;
 		goto out;
 	}
@@ -3359,7 +3269,7 @@ static pam_mysql_err_t pam_mysql_converse(pam_mysql_ctx_t *ctx, char ***pretval,
 	}
 
 	if (NULL == (retval = xcalloc(nargs + 1, sizeof(char **)))) {
-		syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+		logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 		err = PAM_MYSQL_ERR_ALLOC;
 		goto out;
 	}
@@ -3377,7 +3287,7 @@ static pam_mysql_err_t pam_mysql_converse(pam_mysql_ctx_t *ctx, char ***pretval,
 			break;
 #endif
 		default:
-			syslog(LOG_DEBUG, PAM_MYSQL_LOG_PREFIX "conversation failure (reason: %s)",
+			logmsg(LOG_DEBUG, PAM_MYSQL_LOG_PREFIX "conversation failure (reason: %s)",
 					pam_strerror(pamh, perr));
 			err = PAM_MYSQL_ERR_UNKNOWN;
 			goto out;
@@ -3386,7 +3296,7 @@ static pam_mysql_err_t pam_mysql_converse(pam_mysql_ctx_t *ctx, char ***pretval,
 	for (i = 0; i < nargs; i++) {
 		if (resps && resps[i].resp != NULL &&
 				NULL == (retval[i] = xstrdup(resps[i].resp))) {
-			syslog(LOG_AUTHPRIV | LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
+			logmsg(LOG_CRIT, PAM_MYSQL_LOG_PREFIX "allocation failure at " __FILE__ ":%d", __LINE__);
 			err = PAM_MYSQL_ERR_ALLOC;
 			goto out;
 		}
@@ -3499,7 +3409,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags,
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_authenticate() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_authenticate() called.");
 	}
 
 	/* Get User */
@@ -3508,7 +3418,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags,
 	}
 
 	if (user == NULL) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "no user specified.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "no user specified.");
 		retval = PAM_USER_UNKNOWN;
 		goto out;
 	} 
@@ -3618,7 +3528,7 @@ askpass:
 
 	if (passwd == NULL) {
 		if (ctx->verbose) {
-			syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "failed to retrieve authentication token.");
+			logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "failed to retrieve authentication token.");
 		}
 		retval = PAM_AUTH_ERR;
 		goto out;
@@ -3687,7 +3597,7 @@ out:
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_authenticate() returning %d.", retval);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_authenticate() returning %d.", retval);
 	}
 
 	return retval;
@@ -3743,7 +3653,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t * pamh, int flags, int argc,
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_acct_mgmt() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_acct_mgmt() called.");
 	}
 
 	/* Get User */
@@ -3752,7 +3662,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t * pamh, int flags, int argc,
 	}
 
 	if (user == NULL) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "no user specified.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "no user specified.");
 		retval = PAM_USER_UNKNOWN;
 		goto out;
 	} 
@@ -3829,7 +3739,7 @@ out:
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_acct_mgmt() returning %i.",retval);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_acct_mgmt() returning %i.",retval);
 	}
 
 	return retval;
@@ -3846,7 +3756,7 @@ PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh,int flags,int argc,
 	(void)argc;
 	(void)argv;
 #ifdef DEBUG
-	syslog(LOG_INFO, "%s", PAM_MYSQL_LOG_PREFIX "setcred called but not implemented.");
+	logmsg(LOG_INFO, "%s", PAM_MYSQL_LOG_PREFIX "setcred called but not implemented.");
 #endif
 	return PAM_SUCCESS;
 }
@@ -3906,7 +3816,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_chauthtok() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_chauthtok() called.");
 	}
 
 	/* Get User */
@@ -3915,7 +3825,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 	}
 
 	if (user == NULL) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "no user specified.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "no user specified.");
 		retval = PAM_USER_UNKNOWN;
 		goto out;
 	}
@@ -3981,7 +3891,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 
 	if (!(caps & (PAM_MYSQL_CAP_CHAUTHTOK_SELF
 			| PAM_MYSQL_CAP_CHAUTHTOK_OTHERS))) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "User is not allowed to change the authentication token.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "User is not allowed to change the authentication token.");
 		retval = PAM_PERM_DENIED;
 		goto out;
 	}
@@ -4006,7 +3916,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "update authentication token");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "update authentication token");
 	}
 
 	if (!(caps & PAM_MYSQL_CAP_CHAUTHTOK_OTHERS) &&
@@ -4137,7 +4047,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh,int flags,int argc,
 		}
 
 		if (ctx->verbose) {
-			syslog(LOG_AUTHPRIV | LOG_ERR, "Asking for new password (1)");
+			logmsg(LOG_ERR, "Asking for new password (1)");
 		}
 
 		switch (pam_mysql_converse(ctx, &resps, pamh, 1,
@@ -4212,7 +4122,7 @@ out:
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_chauthtok() returning %d.", retval);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_chauthtok() returning %d.", retval);
 	}
 
 	return retval;
@@ -4266,7 +4176,7 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc,
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_open_session() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_open_session() called.");
 	}
 
 	/* Get User */
@@ -4275,7 +4185,7 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc,
 	}
 
 	if (user == NULL) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "no user specified.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "no user specified.");
 		retval = PAM_USER_UNKNOWN;
 		goto out;
 	}
@@ -4314,7 +4224,7 @@ out:
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_open_session() returning %i.", retval);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_open_session() returning %i.", retval);
 	}
 
 	return retval;
@@ -4368,7 +4278,7 @@ PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc,
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_close_session() called.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_close_session() called.");
 	}
 
 	/* Get User */
@@ -4377,7 +4287,7 @@ PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc,
 	}
 
 	if (user == NULL) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "no user specified.");
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "no user specified.");
 		retval = PAM_USER_UNKNOWN;
 		goto out;
 	} 
@@ -4416,7 +4326,7 @@ out:
 	}
 
 	if (ctx->verbose) {
-		syslog(LOG_AUTHPRIV | LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_close_session() returning %i.", retval);
+		logmsg(LOG_ERR, PAM_MYSQL_LOG_PREFIX "pam_sm_close_session() returning %i.", retval);
 	}
 
 	return retval;

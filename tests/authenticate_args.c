@@ -26,6 +26,7 @@ void auth_args_cb(const pam_handle_t *pamh, const char *module_data_name, const 
 TEST(PamMysqlAuthenticateArgs, auth_args)
 {
 	char *args[] = {
+		"verbose=1",
 		"host=localhost",
 		"db=pamtest",
 		"user=root",
@@ -38,7 +39,6 @@ TEST(PamMysqlAuthenticateArgs, auth_args)
 		"statcolumn=stat",
 		"crypt_type=0",
 		"md5=1",
-		"verbose=1",
 		"sqllog=1",
 		"logtable=log",
 		"logmsgcolumn=msg",

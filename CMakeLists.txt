@@ -45,6 +45,7 @@ if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
     include(CTest)
     add_cflag_if_supported("-ggdb")
     add_cflag_if_supported("-O0")
+    add_definitions(-DDEBUG_BUILD)
 elseif()
     add_cflag_if_supported("-O2")
 endif()
@@ -74,7 +75,9 @@ include_directories(
 	${OPENSSL_INCLUDE_DIR}
 	${CMAKE_CURRENT_BINARY_DIR})
 
-set(CFILES src/pam_mysql.c)
+set(CFILES
+	src/pam_mysql.c
+	src/stdlib_wrapper.c)
 
 add_library(${PROJECT_NAME} SHARED ${CFILES})
 target_link_libraries(${PROJECT_NAME} ${MYSQLCLIENT_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY})
